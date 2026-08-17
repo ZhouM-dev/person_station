@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="一个轻量、直观的在线图数据可视化工具">
+  <title>Graph Studio · 图数据可视化</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="sidebar">
+      <header class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="brand-copy">
+          <h1>Graph Studio</h1>
+          <p>让图数据一目了然</p>
+        </div>
+        <button id="sidebarToggle" class="sidebar-toggle" type="button" aria-label="收起左侧栏" aria-expanded="true" title="收起左侧栏">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+        </button>
+      </header>
+
+      <nav class="collapsed-shortcuts" aria-label="收起状态快捷工具">
+        <button type="button" data-quick-action="mode" data-value="touch" title="触摸模式"><kbd>V</kbd><small>触摸</small></button>
+        <button type="button" data-quick-action="mode" data-value="draw" title="绘制模式"><kbd>D</kbd><small>绘制</small></button>
+        <button type="button" data-quick-action="mode" data-value="delete" title="删除模式"><kbd>X</kbd><small>删除</small></button>
+        <button type="button" data-quick-action="mode" data-value="canvas" title="画布模式"><kbd>P</kbd><small>画布</small></button>
+        <button type="button" data-quick-action="mode" data-value="lasso" title="圈选笔迹"><kbd>Q</kbd><small>圈选</small></button>
+        <button type="button" data-quick-action="organize" title="整理图形"><kbd>R</kbd><small>整理</small></button>
+        <button type="button" data-quick-action="escape" title="退出编辑"><kbd>Esc</kbd><small>退出</small></button>
+        <i aria-hidden="true"></i>
+        <button type="button" data-quick-action="tool" data-value="brush" title="画笔"><kbd>B</kbd><small>画笔</small></button>
+        <button type="button" data-quick-action="tool" data-value="line" title="直线"><kbd>L</kbd><small>直线</small></button>
+        <button type="button" data-quick-action="tool" data-value="arrow" title="箭头"><kbd>A</kbd><small>箭头</small></button>
+        <button type="button" data-quick-action="tool" data-value="text" title="文本"><kbd>T</kbd><small>文本</small></button>
+        <button type="button" data-quick-action="tool" data-value="table" title="表格"><kbd>G</kbd><small>表格</small></button>
+        <i aria-hidden="true"></i>
+        <button type="button" data-quick-action="undo" title="撤销"><kbd>Z</kbd><small>撤销</small></button>
+        <button type="button" data-quick-action="redo" title="恢复"><kbd>Y</kbd><small>恢复</small></button>
+      </nav>
+
+      <section class="editor-section">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">DATA INPUT</span>
+            <h2>输入图数据</h2>
+          </div>
+          <button id="exampleBtn" class="text-button" type="button">载入示例</button>
+        </div>
+        <textarea id="dataInput" spellcheck="false" aria-label="图数据输入" placeholder="第一行：n m&#10;下面每行：起点 终点 [边权]&#10;例如：&#10;3 3&#10;1 2&#10;2 3&#10;3 1"></textarea>
+        <div class="format-hint">
+          <span class="hint-icon">i</span>
+          <p>单独一列表示散点；也支持 <code>起点 终点 [权重]</code> 和首行 <code>节点数 边数</code></p>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <span class="eyebrow">OPTIONS</span>
+        <h2>绘图设置</h2>
+        <label class="toggle-row">
+          <span>
+            <strong>有向图</strong>
+            <small>为边显示方向箭头</small>
+          </span>
+          <input id="directedInput" type="checkbox">
+          <span class="toggle" aria-hidden="true"></span>
+        </label>
+        <label class="toggle-row">
+          <span>
+            <strong>显示权重</strong>
+            <small>显示每条边的第三列</small>
+          </span>
+          <input id="weightInput" type="checkbox" checked>
+          <span class="toggle" aria-hidden="true"></span>
+        </label>
+        <label class="toggle-row mobile-only-option">
+          <span>
+            <strong>仅触控笔绘制</strong>
+            <small>开启后手指只平移和缩放视图</small>
+          </span>
+          <input id="mobilePenOnlyInput" type="checkbox" checked>
+          <span class="toggle" aria-hidden="true"></span>
+        </label>
+        <div class="tree-tools">
+          <div class="tree-tools-heading">
+            <span>
+              <strong>布局整理</strong>
+              <small>树按层级排列，图自动调整间距</small>
+            </span>
+          </div>
+          <div class="tree-tools-controls">
+            <label for="rootInput">树根</label>
+            <input id="rootInput" type="text" value="1" aria-label="树的根节点">
+            <button id="organizeBtn" type="button" aria-pressed="false" title="图：执行一次整理；树：切换自动整理">整理</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="shortcuts-section">
+        <span class="eyebrow">SHORTCUTS</span>
+        <h2>快捷键</h2>
+        <div class="shortcut-grid">
+          <span><kbd>V</kbd> 触摸</span><span><kbd>D</kbd> 绘制</span>
+          <span><kbd>X</kbd> 删除</span><span><kbd>P</kbd> 画布</span>
+          <span><kbd>Q</kbd> 圈选</span><span><kbd>Alt 拖动</kbd> 复制笔迹</span>
+          <span class="shortcut-wide"><kbd>R</kbd> 整理图形</span>
+          <span class="shortcut-wide"><kbd>Esc</kbd> 退出编辑并返回触摸模式</span>
+          <span><kbd>B</kbd> 画笔</span><span><kbd>L</kbd> 直线</span>
+          <span><kbd>A</kbd> 箭头</span><span><kbd>T</kbd> 文本</span>
+          <span><kbd>G</kbd> 表格</span><span><kbd>Ctrl Z</kbd> 撤销</span>
+          <span class="shortcut-wide"><kbd>Ctrl C / V</kbd> 复制 / 粘贴圈选笔迹</span>
+          <span class="shortcut-wide mobile-only-option"><kbd>PgDn 按住</kbd> 触控笔临时删除，松开返回</span>
+          <span class="shortcut-wide"><kbd>Ctrl Enter</kbd> 表格递增 / 复制填充</span>
+          <span><kbd>Ctrl Y</kbd> 恢复</span><span><kbd>Ctrl + 左键</kbd> 临时箭头</span>
+        </div>
+        <p>输入数据停止约 0.5 秒后自动绘制</p>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <header class="workspace-header">
+        <div class="graph-status-wrap">
+          <span class="status-dot"></span>
+          <span id="graphStatus">等待输入数据</span>
+        </div>
+        <div class="mode-switch" aria-label="画布模式">
+          <button class="active" data-mode="touch" type="button" aria-pressed="true" title="触摸模式：拖拽节点和画布 (V)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 11V5.5a1.5 1.5 0 0 1 3 0V10m0-3.5a1.5 1.5 0 0 1 3 0V10m0-2a1.5 1.5 0 0 1 3 0v3m0-1a1.5 1.5 0 0 1 3 0v3.5c0 4.1-2.7 7.5-7 7.5h-1.2a7 7 0 0 1-5.4-2.6L3.8 14.6a1.6 1.6 0 0 1 2.3-2.2l2.4 2.1V11Z"/></svg>
+            <span>触摸</span>
+          </button>
+          <button data-mode="draw" type="button" aria-pressed="false" title="绘制模式：短按节点连线，长按节点移动 (D)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="7" r="2.5"/><path d="m7 15.5 10-7"/></svg>
+            <span>绘制</span>
+          </button>
+          <button data-mode="delete" type="button" aria-pressed="false" title="删除模式：删除节点或边 (X)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6"/></svg>
+            <span>删除</span>
+          </button>
+          <button data-mode="canvas" type="button" aria-pressed="false" title="画布模式：使用画笔自由涂画 (P)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5.5 4 4M4 20l4.2-1 11.1-11.1a1.4 1.4 0 0 0 0-2l-1.2-1.2a1.4 1.4 0 0 0-2 0L5 15.8 4 20Z"/></svg>
+            <span>画布</span>
+          </button>
+          <button data-mode="lasso" type="button" aria-pressed="false" title="圈选模式：圈住笔迹后整体移动或复制 (Q)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 4.6C3.8 6.2 2.4 10.4 4 14c1.8 4 7 6.3 11.8 4.8 4.2-1.3 5.7-5.5 3.4-9.1C16.8 6 10.9 3 7.2 4.6Z"/><path d="m16.7 17.9 3.1 3.1"/></svg>
+            <span>圈选</span>
+          </button>
+          <div id="brushTools" class="brush-tools" aria-label="画笔工具">
+            <select id="canvasTool" aria-label="画布绘图工具" title="选择绘图工具">
+              <option value="brush">画笔 B</option>
+              <option value="line">直线 L</option>
+              <option value="arrow">箭头 A</option>
+              <option value="text">文本 T</option>
+              <option value="table">表格 G</option>
+            </select>
+            <div id="colorPalette" class="color-palette">
+              <button id="colorPaletteToggle" class="color-palette-toggle" type="button" aria-label="选择当前工具颜色" title="选择当前工具颜色">
+                <span aria-hidden="true"></span>
+              </button>
+              <div class="color-palette-panel" aria-label="六种基础颜色">
+                <button class="color-swatch" type="button" data-color="#ff5f7e" style="--swatch:#ff5f7e" aria-label="红色" title="红色"></button>
+                <button class="color-swatch" type="button" data-color="#2dd4ff" style="--swatch:#2dd4ff" aria-label="蓝色" title="蓝色"></button>
+                <button class="color-swatch" type="button" data-color="#ffd166" style="--swatch:#ffd166" aria-label="黄色" title="黄色"></button>
+                <button class="color-swatch" type="button" data-color="#67e8b7" style="--swatch:#67e8b7" aria-label="绿色" title="绿色"></button>
+                <button class="color-swatch" type="button" data-color="#a78bfa" style="--swatch:#a78bfa" aria-label="紫色" title="紫色"></button>
+                <button class="color-swatch" type="button" data-color="#ff9f43" style="--swatch:#ff9f43" aria-label="橙色" title="橙色"></button>
+                <label class="more-color-button" title="展开更多颜色">更多
+                  <input id="brushColor" type="color" value="#ff5f7e" aria-label="更多颜色">
+                </label>
+              </div>
+            </div>
+            <button id="clearDrawingBtn" type="button" title="单击清除画布内容，双击清除全部" aria-label="单击清除画布内容，双击清除全部">清除</button>
+            <div id="tableSettings" class="table-settings">
+              <label>行 <input id="tableRows" type="number" value="3" min="1" max="12"></label>
+              <label>列 <input id="tableCols" type="number" value="3" min="1" max="12"></label>
+              <label>宽 <input id="tableWidth" type="number" value="240" min="100" max="800"></label>
+              <label>高 <input id="tableHeight" type="number" value="140" min="60" max="600"></label>
+              <small class="table-tip">停留片刻再拖动可框选 · Ctrl+Enter 填充 · 直接拖动整表</small>
+            </div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="undoBtn" class="theme-toggle undo-button" type="button" aria-label="撤销上一步" title="撤销上一步 (Ctrl+Z)" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5M5 12h8a6 6 0 0 1 6 6"/></svg>
+          </button>
+          <button id="redoBtn" class="theme-toggle undo-button" type="button" aria-label="恢复下一步" title="恢复下一步 (Ctrl+Y)" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7 5 5-5 5m4-5h-8a6 6 0 0 0-6 6"/></svg>
+          </button>
+          <button id="themeToggle" class="theme-toggle" type="button" aria-label="切换为浅色模式" title="切换为浅色模式">
+            <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22M4.9 4.9l1.6 1.6m11 11 1.6 1.6m0-15.2-1.6 1.6m-11 11-1.6 1.6"/></svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.2A8 8 0 0 1 8.8 4 8.3 8.3 0 1 0 20 15.2Z"/></svg>
+          </button>
+          <div class="top-random" aria-label="随机生成图形">
+            <span>随机</span>
+            <input id="randomNodeCount" type="number" value="8" min="1" max="100" aria-label="随机生成的节点数量" title="节点数量">
+            <select id="randomType" aria-label="随机生成类型" title="生成类型">
+              <option value="graph">普通图</option>
+              <option value="tree">树</option>
+            </select>
+            <button id="randomBtn" type="button">生成</button>
+          </div>
+          <div class="toolbar" aria-label="画布工具">
+            <button id="zoomOutBtn" type="button" title="缩小" aria-label="缩小">−</button>
+            <span id="zoomLabel">100%</span>
+            <button id="zoomInBtn" type="button" title="放大" aria-label="放大">＋</button>
+            <span class="separator"></span>
+            <button id="fitBtn" class="fit-button" type="button" title="适应画布" aria-label="适应画布">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div id="canvasWrap" class="canvas-wrap">
+        <svg id="graphCanvas" role="img" aria-label="图形画布">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z"></path>
+            </marker>
+            <marker id="canvasArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"></path>
+            </marker>
+          </defs>
+          <g id="viewport">
+            <g id="guidesLayer"></g>
+            <g id="edgesLayer"></g>
+            <g id="labelsLayer"></g>
+            <g id="nodesLayer"></g>
+            <g id="drawingLayer"></g>
+          </g>
+        </svg>
+        <div id="emptyState" class="empty-state">
+          <div class="empty-illustration" aria-hidden="true">
+            <svg viewBox="0 0 180 130">
+              <path class="ghost-edge" d="M50 82 L91 38 L137 78 L91 101 Z M50 82 L137 78"/>
+              <circle cx="50" cy="82" r="12"/><circle cx="91" cy="38" r="12"/>
+              <circle cx="137" cy="78" r="12"/><circle cx="91" cy="101" r="12"/>
+            </svg>
+          </div>
+          <h2>准备绘制你的图</h2>
+          <p>在左侧输入边数据，停止输入后将自动绘制</p>
+        </div>
+        <div id="errorToast" class="error-toast" role="alert"></div>
+      </div>
+      <footer class="canvas-footer">
+        <span>直接拖动平移 · 停留后拖动框选 · Ctrl/Command + 单击多选</span>
+        <div class="footer-right">
+          <span id="selectionInfo">未选择节点</span>
+          <strong id="graphCount">0 个节点 · 0 条边</strong>
+        </div>
+      </footer>
+    </section>
+  </main>
+  <dialog id="edgeWeightDialog" class="edge-weight-dialog" aria-labelledby="edgeWeightTitle">
+    <form id="edgeWeightForm" method="dialog">
+      <div class="edge-weight-heading">
+        <span class="eyebrow">EDGE WEIGHT</span>
+        <h2 id="edgeWeightTitle">编辑边权</h2>
+        <p id="edgeWeightDescription"></p>
+      </div>
+      <label for="edgeWeightInput">边权</label>
+      <input id="edgeWeightInput" type="text" maxlength="30" autocomplete="off" placeholder="留空表示无边权">
+      <small>支持数字或不含空格的简短文本</small>
+      <div class="edge-weight-actions">
+        <button id="edgeWeightCancel" type="button">取消</button>
+        <button class="primary" type="submit">保存</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="nodeIdDialog" class="edge-weight-dialog" aria-labelledby="nodeIdTitle">
+    <form id="nodeIdForm" method="dialog">
+      <div class="edge-weight-heading">
+        <span class="eyebrow">NODE ID</span>
+        <h2 id="nodeIdTitle">修改节点编号</h2>
+        <p id="nodeIdDescription"></p>
+      </div>
+      <label for="nodeIdInput">新编号</label>
+      <input id="nodeIdInput" type="text" maxlength="30" autocomplete="off" placeholder="输入新的节点编号">
+      <small>编号不能为空、不能重复；将节点 1 改为 A 可自动按字母重编号全部节点</small>
+      <div class="edge-weight-actions">
+        <button id="nodeIdCancel" type="button">取消</button>
+        <button class="primary" type="submit">保存</button>
+      </div>
+    </form>
+  </dialog>
+  <script src="app.js"></script>
+</body>
+</html>
