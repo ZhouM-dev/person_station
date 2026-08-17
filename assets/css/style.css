@@ -195,41 +195,69 @@ article img { max-width: 100%; border-radius: 6px; }
   border-bottom: 1px solid var(--border);
 }
 .manual-modal-body h3 { font-size: 1.05rem; margin: 18px 0 6px; }
+.manual-modal-body h4 { font-size: 1rem; margin: 14px 0 4px; }
+.manual-modal-body h5, .manual-modal-body h6 { font-size: .95rem; margin: 12px 0 4px; }
 .manual-modal-body p { margin: 10px 0; }
 .manual-modal-body blockquote {
   margin: 12px 0;
-  padding: 2px 14px;
+  padding: 6px 16px;
   border-left: 3px solid var(--accent);
   background: var(--code-bg);
   color: var(--muted);
 }
+.manual-modal-body blockquote p { margin: 6px 0; }
+.manual-modal-body blockquote p:first-child { margin-top: 0; }
+.manual-modal-body blockquote p:last-child { margin-bottom: 0; }
 .manual-modal-body ul, .manual-modal-body ol { padding-left: 26px; margin: 8px 0; }
+.manual-modal-body ul li, .manual-modal-body ol li { margin: 4px 0; }
+.manual-modal-body ul ul, .manual-modal-body ul ol,
+.manual-modal-body ol ul, .manual-modal-body ol ol { margin: 4px 0; }
 .manual-modal-body hr { border: 0; border-top: 1px solid var(--border); margin: 18px 0; }
-.manual-modal-body table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .92rem; }
+.manual-modal-body .table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+.manual-modal-body .table-wrap table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: .92rem;
+}
 .manual-modal-body th, .manual-modal-body td {
   border: 1px solid var(--border);
   padding: 7px 12px;
   text-align: left;
   vertical-align: top;
 }
-.manual-modal-body th { background: var(--code-bg); font-weight: 600; }
+.manual-modal-body th { background: var(--code-bg); font-weight: 600; white-space: nowrap; }
+.manual-modal-body tbody tr:nth-child(even) { background: #fafbfc; }
 .manual-modal-body code {
   background: var(--code-bg);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: .88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 .manual-modal-body pre {
   background: var(--code-bg);
+  border: 1px solid var(--border);
   padding: 14px 16px;
   border-radius: 6px;
   overflow-x: auto;
   font-size: .85rem;
+  line-height: 1.55;
 }
-.manual-modal-body pre code { background: none; padding: 0; }
+.manual-modal-body pre code {
+  background: none;
+  padding: 0;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
 .manual-modal-body a { color: var(--accent); }
 .manual-modal-body .manual-loading { color: var(--muted); }
 .manual-modal-body .manual-error { color: var(--accent); }
+.manual-modal-body .manual-hint { color: var(--muted); margin: 6px 0; }
 
 /* 页脚 */
 .site-footer {

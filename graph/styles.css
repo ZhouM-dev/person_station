@@ -66,9 +66,9 @@ button { color: inherit; }
 .sidebar-toggle { position: absolute; right: 15px; display: grid; place-items: center; width: 27px; height: 27px; padding: 0; border: 1px solid #2a374d; border-radius: 7px; background: #151f32; color: #8794aa; cursor: pointer; transition: .18s; }
 .sidebar-toggle:hover { border-color: #6259a8; background: #211f43; color: #b8a8ff; }
 .sidebar-toggle svg { width: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .24s; }
-.home-link { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 10px 27px 16px; padding: 8px 9px; border: 1px solid #2a374d; border-radius: 7px; color: #8794aa; text-decoration: none; font-size: 10px; transition: .18s; }
+.home-link { display: flex; align-items: center; justify-content: center; gap: 7px; flex-shrink: 0; margin: 12px 27px 16px; padding: 9px 10px; min-height: 38px; border: 1px solid #2a374d; border-radius: 7px; color: #8794aa; text-decoration: none; font-size: 11px; font-weight: 600; transition: .18s; }
 .home-link:hover { border-color: #6259a8; background: #211f43; color: #b8a8ff; }
-.home-link svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.home-link svg { width: 14px; height: 14px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .sidebar-collapsed .brand { justify-content: center; padding: 17px 10px; border-bottom: 0; }
 .sidebar-collapsed .brand-mark, .sidebar-collapsed .brand-copy, .sidebar-collapsed .home-link, .sidebar-collapsed .editor-section, .sidebar-collapsed .settings-section, .sidebar-collapsed .shortcuts-section { display: none; }
 .sidebar-collapsed .sidebar-toggle { position: static; width: 30px; height: 24px; }
