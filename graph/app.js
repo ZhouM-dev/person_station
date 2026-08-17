@@ -33,10 +33,9 @@ const elements = {
   brushColor: document.querySelector("#brushColor"),
   clearDrawing: document.querySelector("#clearDrawingBtn"),
   tableSettings: document.querySelector("#tableSettings"),
-  tableRows: document.querySelector("#tableRows"),
-  tableCols: document.querySelector("#tableCols"),
-  tableWidth: document.querySelector("#tableWidth"),
-  tableHeight: document.querySelector("#tableHeight"),
+  tableCellWidth: document.querySelector("#tableCellWidth"),
+  tableCellHeight: document.querySelector("#tableCellHeight"),
+  tableFontSize: document.querySelector("#tableFontSize"),
   rootInput: document.querySelector("#rootInput"),
   organize: document.querySelector("#organizeBtn"),
   randomNodeCount: document.querySelector("#randomNodeCount"),
@@ -99,6 +98,7 @@ const state = {
   pendingTextSnapshot: null,
   pendingTableObject: null,
   pendingTableSnapshot: null,
+  tablePreview: null,
   contentEditSession: null,
   undoStack: [],
   redoStack: [],
@@ -832,6 +832,7 @@ function cancelPointerInteraction(revert = true) {
   state.drawingStart = null;
   state.drawingMoved = false;
   state.pendingBrushSnapshot = null;
+  state.tablePreview = null;
   state.draggingNode = null;
   state.draggingNodeElement = null;
   state.draggingNodeGroup = null;
@@ -1705,7 +1706,8 @@ function updateCanvasToolUI() {
   });
   if (!inCanvasMode) return;
   const toolNames = { brush: "画笔", line: "直线", arrow: "箭头", text: "文本", table: "表格" };
-  elements.selection.textContent = `画布模式 · ${toolNames[elements.canvasTool.value] || "画笔"}${
+  const tableHint = elements.canvasTool.value === "table" ? " · 拖拽绘制区域，实时预览表格网格" : "";
+  elements.selection.textContent = `画布模式 · ${toolNames[elements.canvasTool.value] || "画笔"}${tableHint}${
     mobilePenOnlyEnabled() ? " · 触控笔操作，手指仅导航" : ""
   }`;
 }
@@ -2199,16 +2201,21 @@ function beginCanvasAction(event, toolOverride = null) {
     insertTextAt(point);
     return;
   }
-  if (tool === "table") {
-    insertTableAt(point);
-    return;
-  }
-
   state.pendingBrushSnapshot = captureSnapshot();
   state.drawingStart = point;
   state.drawingMoved = false;
   let shape;
-  if (tool === "line") {
+  if (tool === "table") {
+    const outline = svgElement("rect", {
+      class: "table-draw-preview-outline",
+      x: point.x, y: point.y, width: 0, height: 0
+    });
+    const grid = svgElement("g", { class: "table-draw-preview-grid" });
+    shape = svgElement("g", { class: "table-draw-preview" });
+    shape.append(outline, grid);
+    state.currentStrokePath = "table";
+    state.tablePreview = { outline, grid };
+  } else if (tool === "line") {
     shape = svgElement("line", {
       class: "canvas-stroke",
       stroke: elements.brushColor.value,
@@ -2240,7 +2247,30 @@ function continueCanvasAction(event) {
   if (!state.painting || !state.currentStroke) return;
   const point = toGraphPoint(event);
   state.drawingMoved = state.drawingMoved || Math.hypot(point.x - state.drawingStart.x, point.y - state.drawingStart.y) > 2 / state.scale;
-  if (state.currentStroke.tagName.toLowerCase() === "line") {
+  if (state.currentStrokePath === "table") {
+    const cellWidth = clampInteger(elements.tableCellWidth.value, 40, 240, 80);
+    const cellHeight = clampInteger(elements.tableCellHeight.value, 24, 160, 40);
+    const x = Math.min(state.drawingStart.x, point.x);
+    const y = Math.min(state.drawingStart.y, point.y);
+    const columns = Math.max(1, Math.round(Math.abs(point.x - state.drawingStart.x) / cellWidth));
+    const rows = Math.max(1, Math.round(Math.abs(point.y - state.drawingStart.y) / cellHeight));
+    const width = columns * cellWidth;
+    const height = rows * cellHeight;
+    const { outline, grid } = state.tablePreview;
+    outline.setAttribute("x", x);
+    outline.setAttribute("y", y);
+    outline.setAttribute("width", width);
+    outline.setAttribute("height", height);
+    grid.replaceChildren();
+    for (let columnIndex = 0; columnIndex <= columns; columnIndex++) {
+      const lineX = x + columnIndex * cellWidth;
+      grid.append(svgElement("line", { x1: lineX, y1: y, x2: lineX, y2: y + height }));
+    }
+    for (let rowIndex = 0; rowIndex <= rows; rowIndex++) {
+      const lineY = y + rowIndex * cellHeight;
+      grid.append(svgElement("line", { x1: x, y1: lineY, x2: x + width, y2: lineY }));
+    }
+  } else if (state.currentStroke.tagName.toLowerCase() === "line") {
     state.currentStroke.setAttribute("x2", point.x);
     state.currentStroke.setAttribute("y2", point.y);
   } else if (state.currentStrokePath === "arrow") {
@@ -2436,29 +2466,24 @@ function finishTextResize(event) {
   return true;
 }
 
-function insertTableAt(point) {
+function insertTableAt(region, historySnapshot = null) {
   finalizePendingTableInsertion();
-  const rows = clampInteger(elements.tableRows.value, 1, 12, 3);
-  const columns = clampInteger(elements.tableCols.value, 1, 12, 3);
-  const mobileStandalone = document.body.dataset.mobileStandalone === "true";
-  const requestedWidth = clampInteger(elements.tableWidth.value, 100, 800, mobileStandalone ? 100 : 240);
-  const requestedHeight = clampInteger(elements.tableHeight.value, 60, 600, mobileStandalone ? 60 : 140);
-  // 每个单元格都需要容纳文字行高、内边距和边框，尺寸过小时自动扩展，避免被 foreignObject 裁切。
-  const minimumWidth = mobileStandalone ? 100 : columns * 56;
-  const minimumHeight = mobileStandalone ? 60 : rows * 24 + 2;
-  const width = Math.max(requestedWidth, minimumWidth);
-  const height = Math.max(requestedHeight, minimumHeight);
-  elements.tableWidth.value = width;
-  elements.tableHeight.value = height;
-  saveSettings();
-  const insertionSnapshot = captureSnapshot();
+  const cellWidth = clampInteger(elements.tableCellWidth.value, 40, 240, 80);
+  const cellHeight = clampInteger(elements.tableCellHeight.value, 24, 160, 40);
+  const fontSize = clampInteger(elements.tableFontSize.value, 8, 40, 12);
+  const columns = Math.max(1, Math.round(Math.max(0, region.width) / cellWidth));
+  const rows = Math.max(1, Math.round(Math.max(0, region.height) / cellHeight));
+  const width = columns * cellWidth;
+  const height = rows * cellHeight;
+  const insertionSnapshot = historySnapshot || captureSnapshot();
   const foreignObject = svgElement("foreignObject", {
-    x: point.x, y: point.y, width, height,
+    x: region.x, y: region.y, width, height,
     class: "canvas-editable-object"
   });
   const table = document.createElementNS(XHTML_NS, "table");
   table.className = "canvas-table-editor";
   table.style.color = elements.brushColor.value;
+  table.style.fontSize = `${fontSize}px`;
   const body = document.createElementNS(XHTML_NS, "tbody");
   for (let rowIndex = 0; rowIndex < rows; rowIndex++) {
     const row = document.createElementNS(XHTML_NS, "tr");
@@ -2476,9 +2501,7 @@ function insertTableAt(point) {
   state.pendingTableObject = foreignObject;
   state.pendingTableSnapshot = insertionSnapshot;
   updateEmptyState();
-  if (width !== requestedWidth || height !== requestedHeight) {
-    elements.selection.textContent = `表格尺寸已自动扩展为 ${width} × ${height}，确保所有单元格完整显示`;
-  }
+  elements.selection.textContent = `已插入 ${rows} × ${columns} 表格（单元格 ${cellWidth}×${cellHeight}px · 字号 ${fontSize}px）`;
   requestAnimationFrame(() => table.querySelector("td")?.focus());
 }
 
@@ -3594,10 +3617,9 @@ function saveSettings() {
     canvasTool: elements.canvasTool.value,
     brushColor: elements.brushColor.value,
     toolColors: { ...state.toolColors },
-    tableRows: elements.tableRows.value,
-    tableCols: elements.tableCols.value,
-    tableWidth: elements.tableWidth.value,
-    tableHeight: elements.tableHeight.value,
+    tableCellWidth: elements.tableCellWidth.value,
+    tableCellHeight: elements.tableCellHeight.value,
+    tableFontSize: elements.tableFontSize.value,
     nextTreeKind: state.nextTreeKind,
     treeAutoArrange: state.treeAutoArrange,
     mobilePenOnly: elements.mobilePenOnly?.checked !== false
@@ -3615,8 +3637,8 @@ function restoreSettings() {
   const settings = readLocalJSON(isMobile ? MOBILE_SETTINGS_KEY : DESKTOP_SETTINGS_KEY);
   state.restoringSettings = true;
   if (isMobile && !settings) {
-    elements.tableWidth.value = elements.tableWidth.min;
-    elements.tableHeight.value = elements.tableHeight.min;
+    elements.tableCellWidth.value = elements.tableCellWidth.min;
+    elements.tableCellHeight.value = elements.tableCellHeight.min;
   }
   if (settings && typeof settings === "object") {
     elements.directed.checked = Boolean(settings.directed);
@@ -3636,9 +3658,9 @@ function restoreSettings() {
     } else if (/^#[0-9a-f]{6}$/i.test(settings.brushColor || "")) {
       state.toolColors[activeToolColorKey()] = settings.brushColor.toLowerCase();
     }
-    [[elements.tableRows, settings.tableRows], [elements.tableCols, settings.tableCols],
-     [elements.tableWidth, settings.tableWidth], [elements.tableHeight, settings.tableHeight]]
-      .forEach(([input, value]) => { if (value !== undefined) input.value = value; });
+    if (settings.tableCellWidth !== undefined) elements.tableCellWidth.value = settings.tableCellWidth;
+    if (settings.tableCellHeight !== undefined) elements.tableCellHeight.value = settings.tableCellHeight;
+    if (settings.tableFontSize !== undefined) elements.tableFontSize.value = settings.tableFontSize;
   }
   const collapsed = settings ? Boolean(settings.sidebarCollapsed) : compact;
   elements.appShell.classList.toggle("sidebar-collapsed", collapsed);
@@ -4108,8 +4130,23 @@ function endPointer(event) {
     finishDeleteGesture(event?.type === "pointerup");
   }
   if (state.painting && state.pendingBrushSnapshot) {
-    if (state.drawingMoved) pushUndoSnapshot(state.pendingBrushSnapshot);
-    else state.currentStroke?.remove();
+    if (state.drawingMoved) {
+      if (state.currentStrokePath === "table") {
+        const outline = state.tablePreview.outline;
+        const region = {
+          x: Number(outline.getAttribute("x")),
+          y: Number(outline.getAttribute("y")),
+          width: Number(outline.getAttribute("width")),
+          height: Number(outline.getAttribute("height"))
+        };
+        state.currentStroke.remove();
+        insertTableAt(region, state.pendingBrushSnapshot);
+      } else {
+        pushUndoSnapshot(state.pendingBrushSnapshot);
+      }
+    } else {
+      state.currentStroke?.remove();
+    }
   }
   if (state.draggingNode && state.pendingDragSnapshot && state.dragOrigin) {
     const moved = Math.hypot(state.draggingNode.x - state.dragOrigin.x, state.draggingNode.y - state.dragOrigin.y) > .5;
@@ -4153,6 +4190,7 @@ function endPointer(event) {
   state.canvasObjectEditTarget = null; state.canvasObjectDragStarted = false;
   state.painting = false; state.currentStroke = null; state.currentStrokePath = "";
   state.drawingStart = null; state.drawingMoved = false;
+  state.tablePreview = null;
   state.pendingBrushSnapshot = null; state.pendingDragSnapshot = null; state.dragOrigin = null;
   elements.canvasWrap.classList.remove("panning");
 }
@@ -4358,9 +4396,22 @@ elements.nodeIdDialog.addEventListener("close", () => {
   state.editingNodeId = null;
   elements.nodeIdInput.setCustomValidity("");
 });
-[elements.randomNodeCount, elements.randomType,
- elements.tableRows, elements.tableCols, elements.tableWidth, elements.tableHeight]
+[elements.randomNodeCount, elements.randomType, elements.tableCellWidth, elements.tableCellHeight, elements.tableFontSize]
   .forEach(control => control.addEventListener("change", saveSettings));
+elements.tableFontSize.addEventListener("change", () => {
+  let tableObject = state.contentEditSession?.target?.closest?.(".canvas-table-editor td")
+    ? state.contentEditSession.target.closest(".canvas-editable-object")
+    : null;
+  if (!tableObject && state.pendingTableObject?.querySelector?.("table")) {
+    tableObject = state.pendingTableObject;
+  }
+  if (tableObject) {
+    const size = clampInteger(elements.tableFontSize.value, 8, 40, 12);
+    tableObject.querySelector("table").style.fontSize = `${size}px`;
+    elements.selection.textContent = `已更新表格字号为 ${size}px`;
+    invalidateDrawingMarkup();
+  }
+});
 elements.rootInput.addEventListener("change", () => {
   saveSettings();
   if (state.treeAutoArrange && isForestGraph(state.graph)) {

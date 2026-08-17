@@ -174,8 +174,9 @@ kbd { padding: 1px 4px; border: 1px solid #344057; border-bottom-width: 2px; bor
 .mode-switch button:hover { color: #c0b4ff; background: #211f43; }
 .mode-switch button.active { color: #7ee8ff; background: #17243a; box-shadow: 0 1px 5px rgba(0,0,0,.3), inset 0 0 0 1px #29425a; }
 .mode-switch svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.brush-tools { display: flex; align-items: center; gap: 5px; margin-left: 3px; padding-left: 6px; border-left: 1px solid #29364b; visibility: hidden; opacity: 0; pointer-events: none; }
-.brush-tools.active { visibility: visible; opacity: 1; pointer-events: auto; }
+.brush-tools { display: flex; align-items: center; gap: 5px; margin-left: 3px; padding-left: 6px; border-left: 1px solid #29364b; }
+.brush-tools select, .brush-tools .color-palette { visibility: hidden; opacity: 0; pointer-events: none; }
+.brush-tools.active select, .brush-tools.active .color-palette { visibility: visible; opacity: 1; pointer-events: auto; }
 .brush-tools select { width: 53px; height: 23px; padding: 0 3px; border: 1px solid #344258; border-radius: 5px; outline: none; background: #111a2b; color: #aab7ca; font-size: 9px; }
 .brush-tools select option { background: #111a2b; color: #d7e1f1; }
 .color-palette { position: relative; }
@@ -191,7 +192,7 @@ kbd { padding: 1px 4px; border: 1px solid #344057; border-bottom-width: 2px; bor
 .more-color-button input[type="color"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .mode-switch .brush-tools button { height: 23px; padding: 0 7px; border: 1px solid #3a465a; background: #182337; color: #98a7bd; }
 .mode-switch .brush-tools button:hover { border-color: #ff5f7e; background: #351d2a; color: #ff8da3; }
-.table-settings { position: absolute; z-index: 5; top: 39px; right: 0; display: none; grid-template-columns: repeat(2, auto); gap: 8px 12px; width: 205px; padding: 11px; border: 1px solid #314058; border-radius: 8px; background: #111a2b; box-shadow: 0 12px 28px rgba(0,0,0,.32); }
+.table-settings { position: absolute; z-index: 5; top: 39px; right: 0; display: none; grid-template-columns: repeat(2, auto); gap: 8px 12px; width: 240px; padding: 11px; border: 1px solid #314058; border-radius: 8px; background: #111a2b; box-shadow: 0 12px 28px rgba(0,0,0,.32); }
 .table-settings.active { display: grid; }
 .table-settings label { display: flex; align-items: center; justify-content: space-between; gap: 6px; color: #8796ac; font-size: 9px; }
 .table-settings input { width: 58px; height: 25px; padding: 0 5px; border: 1px solid #344258; border-radius: 5px; outline: none; background: #0a1221; color: #d7e1f1; font-size: 9px; }
@@ -281,6 +282,9 @@ body[data-mobile-standalone="true"] .graph-node.box-selected.mobile-active-selec
   animation: selected-node-pulse 1.15s ease-in-out infinite;
 }
 .canvas-stroke { fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; vector-effect: non-scaling-stroke; }
+.table-draw-preview { pointer-events: none; }
+.table-draw-preview-outline { fill: rgba(45, 212, 255, .10); stroke: #2dd4ff; stroke-width: 1.5; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+.table-draw-preview-grid line { stroke: #2dd4ff; stroke-width: 1; stroke-dasharray: 2 3; opacity: .6; vector-effect: non-scaling-stroke; }
 .lasso-outline { fill: rgba(54, 189, 140, .08); stroke: #67e8b7; stroke-width: 1.5; stroke-dasharray: 7 5; pointer-events: none; vector-effect: non-scaling-stroke; }
 .lasso-selection-overlay { pointer-events: none; }
 .lasso-selection-box { fill: rgba(54, 189, 140, .055); stroke: #67e8b7; stroke-width: 1.5; stroke-dasharray: 7 5; pointer-events: none; vector-effect: non-scaling-stroke; }
