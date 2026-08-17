@@ -181,11 +181,10 @@
             </div>
             <button id="clearDrawingBtn" type="button" title="单击清除画布内容，双击清除全部" aria-label="单击清除画布内容，双击清除全部">清除</button>
             <div id="tableSettings" class="table-settings">
-              <label>行 <input id="tableRows" type="number" value="3" min="1" max="12"></label>
-              <label>列 <input id="tableCols" type="number" value="3" min="1" max="12"></label>
-              <label>宽 <input id="tableWidth" type="number" value="240" min="100" max="800"></label>
-              <label>高 <input id="tableHeight" type="number" value="140" min="60" max="600"></label>
-              <small class="table-tip">停留片刻再拖动可框选 · Ctrl+Enter 填充 · 直接拖动整表</small>
+              <label>单元格宽 <input id="tableCellWidth" type="number" value="80" min="40" max="240"></label>
+              <label>单元格高 <input id="tableCellHeight" type="number" value="40" min="24" max="160"></label>
+              <label style="grid-column: 1 / -1">字体大小 <input id="tableFontSize" type="number" value="12" min="8" max="40"></label>
+              <small class="table-tip">在画布上拖拽绘制表格 · 行列数自动按单元格尺寸计算 · Ctrl+Enter 填充</small>
             </div>
           </div>
         </div>
