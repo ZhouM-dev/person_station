@@ -994,7 +994,7 @@ body[data-mobile-standalone="true"] .sidebar-collapsed .sidebar-toggle svg { tra
       </div>
       <label for="nodeIdInput">新编号</label>
       <input id="nodeIdInput" type="text" maxlength="30" autocomplete="off" placeholder="输入新的节点编号">
-      <small>编号不能为空、不能重复；将节点 1 改为 A 可自动按字母重编号全部节点</small>
+      <small>编号不能为空；编号可与其他节点重复，将节点 1 改为 A 可自动按字母重编号全部节点</small>
       <div class="edge-weight-actions">
         <button id="nodeIdCancel" type="button">取消</button>
         <button class="primary" type="submit">保存</button>
@@ -1224,7 +1224,19 @@ function parseGraph(raw) {
     }
   }
   if (nodeIds.size > 500 || edges.length > 2000) throw new Error("为保证流畅，最多支持 500 个节点和 2000 条边");
-  return { nodes: [...nodeIds].map(id => ({ id, x: 0, y: 0 })), edges };
+  // 内部用唯一 id（uid）定位节点，label 为可重复的显示编号。
+  let uidSeed = 0;
+  const nodeByLabel = new Map();
+  const nodes = [...nodeIds].map(label => {
+    const node = { id: `n${uidSeed++}`, label, x: 0, y: 0 };
+    nodeByLabel.set(label, node);
+    return node;
+  });
+  edges.forEach(edge => {
+    edge.source = nodeByLabel.get(edge.source).id;
+    edge.target = nodeByLabel.get(edge.target).id;
+  });
+  return { nodes, edges };
 }
 
 function isIntegerToken(value) { return /^\d+$/.test(value); }
@@ -1255,7 +1267,7 @@ function layoutGraph(graph) {
 function runForceLayout(graph, width, height) {
   const iterations = graph.nodes.length < 35 ? 150 : 80;
   const area = width * height;
-  const referenceRadius = Math.max(...graph.nodes.map(node => nodeRadius(node.id)), 17);
+  const referenceRadius = Math.max(...graph.nodes.map(node => nodeRadius(node.label)), 17);
   const referenceSpacing = referenceRadius * 2 * GENERATED_EDGE_DIAMETER_MULTIPLIER;
   const ideal = Math.min(124, Math.max(referenceSpacing, Math.sqrt(area / graph.nodes.length) * .325));
   const byId = new Map(graph.nodes.map(n => [n.id, n]));
@@ -1301,7 +1313,7 @@ function runForceLayout(graph, width, height) {
 function resolveNodeOverlaps(graph, width, height) {
   const padding = 14;
   const iterations = graph.nodes.length < 40 ? 140 : 220;
-  const radii = graph.nodes.map(node => nodeRadius(node.id));
+  const radii = graph.nodes.map(node => nodeRadius(node.label));
   const cellSize = Math.max(48, Math.max(...radii, 17) * 2 + padding);
   for (let step = 0; step < iterations; step++) {
     let collisionCount = 0;
@@ -1341,7 +1353,7 @@ function resolveNodeOverlaps(graph, width, height) {
       }
     }
     graph.nodes.forEach(node => {
-      const margin = nodeRadius(node.id) + 12;
+      const margin = nodeRadius(node.label) + 12;
       node.x = Math.max(margin, Math.min(width - margin, node.x));
       node.y = Math.max(margin, Math.min(height - margin, node.y));
     });
@@ -1372,7 +1384,7 @@ function resolveEdgeNodeCollisions(graph, width, height) {
         const closestY = source.y + edgeY * projection;
         let dx = node.x - closestX, dy = node.y - closestY;
         let distance = Math.hypot(dx, dy);
-        const clearance = nodeRadius(node.id) + 11;
+        const clearance = nodeRadius(node.label) + 11;
         if (distance >= clearance) return;
         collisionCount++;
 
@@ -1396,7 +1408,7 @@ function resolveEdgeNodeCollisions(graph, width, height) {
     });
 
     graph.nodes.forEach(node => {
-      const margin = nodeRadius(node.id) + 12;
+      const margin = nodeRadius(node.label) + 12;
       node.x = Math.max(margin, Math.min(width - margin, node.x));
       node.y = Math.max(margin, Math.min(height - margin, node.y));
     });
@@ -1483,10 +1495,13 @@ function rayRoom(origin, dx, dy, width, height) {
 }
 
 function buildEdgeLayouts(edges) {
+  const labelOf = new Map((state.graph?.nodes ?? []).map(node => [node.id, node.label]));
   const groups = new Map();
   edges.forEach((edge, index) => {
     const selfLoop = edge.source === edge.target;
-    const ordered = selfLoop || compareNodeIds(edge.source, edge.target) <= 0
+    const sourceLabel = labelOf.get(edge.source) ?? edge.source;
+    const targetLabel = labelOf.get(edge.target) ?? edge.target;
+    const ordered = selfLoop || compareNodeIds(sourceLabel, targetLabel) <= 0
       ? [edge.source, edge.target]
       : [edge.target, edge.source];
     const key = JSON.stringify(ordered);
@@ -1552,11 +1567,11 @@ function renderGraph() {
   });
 
   graph.nodes.forEach(node => {
-    const group = svgElement("g", { class: "graph-node", transform: `translate(${node.x} ${node.y})`, "data-node-id": node.id, tabindex: "0", role: "button", "aria-label": `节点 ${node.id}` });
-    group.append(svgElement("circle", { class: "node-hit", r: nodeRadius(node.id) }));
-    group.append(svgElement("circle", { class: "node-selection-ring", r: nodeRadius(node.id) + 7 }));
-    group.append(svgElement("circle", { class: "node-circle", r: nodeRadius(node.id) }));
-    group.append(svgElement("text", { class: "node-label" }, node.id));
+    const group = svgElement("g", { class: "graph-node", transform: `translate(${node.x} ${node.y})`, "data-node-id": node.id, tabindex: "0", role: "button", "aria-label": `节点 ${node.label}` });
+    group.append(svgElement("circle", { class: "node-hit", r: nodeRadius(node.label) }));
+    group.append(svgElement("circle", { class: "node-selection-ring", r: nodeRadius(node.label) + 7 }));
+    group.append(svgElement("circle", { class: "node-circle", r: nodeRadius(node.label) }));
+    group.append(svgElement("text", { class: "node-label" }, node.label));
     group.classList.toggle("box-selected", state.boxSelectedNodeIds.has(node.id));
     group.classList.toggle("mobile-active-selection",
       document.body.dataset.mobileStandalone === "true"
@@ -1628,7 +1643,7 @@ function weightGap(weight) {
 
 function updateEdge(path, source, target, directed, gap = 0, layout = null) {
   if (source === target || source.id === target.id) {
-    const r = nodeRadius(source.id);
+    const r = nodeRadius(source.label);
     const groupIndex = layout?.groupIndex ?? 0;
     const level = Math.floor(groupIndex / 2);
     const above = groupIndex % 2 === 0;
@@ -1641,8 +1656,8 @@ function updateEdge(path, source, target, directed, gap = 0, layout = null) {
   const dx = target.x - source.x, dy = target.y - source.y;
   const distance = Math.max(1, Math.hypot(dx, dy));
   const ux = dx / distance, uy = dy / distance;
-  const sourceR = nodeRadius(source.id);
-  const targetR = nodeRadius(target.id) + (directed ? 7 : 0);
+  const sourceR = nodeRadius(source.label);
+  const targetR = nodeRadius(target.label) + (directed ? 7 : 0);
   const startX = source.x + ux * sourceR, startY = source.y + uy * sourceR;
   const endX = target.x - ux * targetR, endY = target.y - uy * targetR;
   const curveOffset = layout?.curveOffset ?? 0;
@@ -2153,10 +2168,11 @@ function organizeAsTree(recordHistory = true, targetCenterOverride = null) {
   const graph = state.graph;
   const byId = new Map(graph.nodes.map(node => [node.id, node]));
   const requestedRootId = elements.rootInput.value.trim() || "1";
-  const fallbackRootUsed = !byId.has(requestedRootId);
+  const requestedRootNode = graph.nodes.find(node => node.label === requestedRootId);
+  const fallbackRootUsed = !requestedRootNode;
   const rootId = fallbackRootUsed
-    ? graph.nodes.map(node => node.id).sort(compareNodeIds)[0]
-    : requestedRootId;
+    ? graph.nodes.map(node => node.id).sort(compareNodeUids)[0]
+    : requestedRootNode.id;
   if (fallbackRootUsed) {
     elements.rootInput.value = rootId;
     saveSettings();
@@ -2171,7 +2187,7 @@ function organizeAsTree(recordHistory = true, targetCenterOverride = null) {
     adjacency.get(edge.source).push(edge.target);
     adjacency.get(edge.target).push(edge.source);
   });
-  adjacency.forEach(neighbors => neighbors.sort(compareNodeIds));
+  adjacency.forEach(neighbors => neighbors.sort(compareNodeUids));
 
   const visited = new Set([rootId]);
   const layers = [];
@@ -2200,7 +2216,7 @@ function organizeAsTree(recordHistory = true, targetCenterOverride = null) {
   if (recordHistory) pushUndoSnapshot();
   const isLongPath = graph.nodes.length >= 6 && graph.nodes.every(node => adjacency.get(node.id).length <= 2);
   const pathEndpointIds = isLongPath
-    ? graph.nodes.filter(node => adjacency.get(node.id).length === 1).map(node => node.id).sort(compareNodeIds)
+    ? graph.nodes.filter(node => adjacency.get(node.id).length === 1).map(node => node.id).sort(compareNodeUids)
     : [];
   const rootIsPathEndpoint = pathEndpointIds.includes(rootId);
   if (isLongPath && rootIsPathEndpoint) {
@@ -2219,15 +2235,15 @@ function organizeAsTree(recordHistory = true, targetCenterOverride = null) {
     state.treeLayout = null;
     renderGraph();
     elements.status.textContent = `已将 ${graph.nodes.length} 个节点的单链紧凑回旋整理`;
-    if (fallbackRootUsed) elements.selection.textContent = `根节点 ${requestedRootId} 不存在，已自动使用最小编号节点 ${rootId}`;
+    if (fallbackRootUsed) elements.selection.textContent = `根节点 ${requestedRootId} 不存在，已自动使用最小编号节点 ${nodeLabelOf(rootId)}`;
     elements.statusDot.classList.add("ready");
     hideError();
     return;
   }
 
-  const referenceSpacing = Math.max(...graph.nodes.map(node => nodeRadius(node.id)), 17)
+  const referenceSpacing = Math.max(...graph.nodes.map(node => nodeRadius(node.label)), 17)
     * 2 * GENERATED_EDGE_DIAMETER_MULTIPLIER * TREE_LAYOUT_SPACING_SCALE;
-  const maximumDiameter = Math.max(...graph.nodes.map(node => nodeRadius(node.id) * 2), 34);
+  const maximumDiameter = Math.max(...graph.nodes.map(node => nodeRadius(node.label) * 2), 34);
   const horizontalGap = Math.max(maximumDiameter + 14, referenceSpacing * .78);
   const verticalGap = Math.max(maximumDiameter + 18, referenceSpacing * .9);
   const rawX = centeredTreeXPositions(rootId, children, horizontalGap);
@@ -2244,8 +2260,8 @@ function organizeAsTree(recordHistory = true, targetCenterOverride = null) {
   state.treeLayout = { rootId, layers };
   renderGraph();
   elements.status.textContent = isLongPath
-    ? `单链已从内部根节点 ${rootId} 向两侧居中分层 · ${layers.length} 层 · 参考边长 ${referenceSpacing.toFixed(1)}`
-    : `已按根节点 ${rootId} 父子居中整理 · ${layers.length} 层 · 参考边长 ${referenceSpacing.toFixed(1)}`;
+    ? `单链已从内部根节点 ${nodeLabelOf(rootId)} 向两侧居中分层 · ${layers.length} 层 · 参考边长 ${referenceSpacing.toFixed(1)}`
+    : `已按根节点 ${nodeLabelOf(rootId)} 父子居中整理 · ${layers.length} 层 · 参考边长 ${referenceSpacing.toFixed(1)}`;
   if (fallbackRootUsed) elements.selection.textContent = `根节点 ${requestedRootId} 不存在，已自动使用最小编号节点 ${rootId}`;
   elements.statusDot.classList.add("ready");
   hideError();
@@ -2254,7 +2270,7 @@ function organizeAsTree(recordHistory = true, targetCenterOverride = null) {
 function layoutPathSerpentine(nodes, rect) {
   const columns = Math.max(3, Math.min(8, Math.ceil(Math.sqrt(nodes.length * 1.5))));
   const rows = Math.ceil(nodes.length / columns);
-  const referenceSpacing = Math.max(...nodes.map(node => nodeRadius(node.id)), 17)
+  const referenceSpacing = Math.max(...nodes.map(node => nodeRadius(node.label)), 17)
     * 2 * GENERATED_EDGE_DIAMETER_MULTIPLIER * TREE_LAYOUT_SPACING_SCALE;
   const horizontalGap = referenceSpacing;
   const verticalGap = referenceSpacing;
@@ -2313,7 +2329,7 @@ function axialDistance(a, b) {
 
 function organizeGraphOnLattice(graph) {
   const targetCenter = graphCenter(graph);
-  const edgeLength = Math.max(...graph.nodes.map(node => nodeRadius(node.id)), 17)
+  const edgeLength = Math.max(...graph.nodes.map(node => nodeRadius(node.label)), 17)
     * 2 * GENERATED_EDGE_DIAMETER_MULTIPLIER;
   const adjacency = new Map(graph.nodes.map(node => [node.id, new Set()]));
   graph.edges.forEach(edge => {
@@ -2338,7 +2354,7 @@ function organizeGraphOnLattice(graph) {
   if (!assigned.size) {
     const root = [...graph.nodes].sort((a, b) =>
       (adjacency.get(b.id)?.size ?? 0) - (adjacency.get(a.id)?.size ?? 0)
-      || compareNodeIds(a.id, b.id))[0];
+      || compareNodeUids(a.id, b.id))[0];
     assigned.set(root.id, { q: 0, r: 0 });
     occupied.set(latticeKey(0, 0), root.id);
   }
@@ -2381,7 +2397,7 @@ function organizeGraphOnLattice(graph) {
       const assignedB = [...(adjacency.get(b) ?? [])].filter(id => assigned.has(id)).length;
       return assignedB - assignedA
         || (adjacency.get(b)?.size ?? 0) - (adjacency.get(a)?.size ?? 0)
-        || compareNodeIds(a, b);
+        || compareNodeUids(a, b);
     })[0];
     const placedNeighbors = [...(adjacency.get(nextId) ?? [])]
       .map(id => assigned.get(id)).filter(Boolean);
@@ -2570,7 +2586,7 @@ function layoutTreeComponent(component, rootId, targetCenter) {
     layers.push(current.map(id => byId.get(id)));
     const next = [];
     current.forEach(id => {
-      const neighbors = [...component.adjacency.get(id)].sort(compareNodeIds);
+      const neighbors = [...component.adjacency.get(id)].sort(compareNodeUids);
       neighbors.forEach(neighbor => {
         if (!byId.has(neighbor) || visited.has(neighbor)) return;
         visited.add(neighbor);
@@ -2580,9 +2596,9 @@ function layoutTreeComponent(component, rootId, targetCenter) {
     });
     current = next;
   }
-  const referenceSpacing = Math.max(...component.nodes.map(node => nodeRadius(node.id)), 17)
+  const referenceSpacing = Math.max(...component.nodes.map(node => nodeRadius(node.label)), 17)
     * 2 * GENERATED_EDGE_DIAMETER_MULTIPLIER * TREE_LAYOUT_SPACING_SCALE;
-  const maximumDiameter = Math.max(...component.nodes.map(node => nodeRadius(node.id) * 2), 34);
+  const maximumDiameter = Math.max(...component.nodes.map(node => nodeRadius(node.label) * 2), 34);
   const horizontalGap = Math.max(maximumDiameter + 14, referenceSpacing * .78);
   const verticalGap = Math.max(maximumDiameter + 18, referenceSpacing * .9);
   const rawX = centeredTreeXPositions(rootId, children, horizontalGap);
@@ -2610,7 +2626,7 @@ function organizeTreeForest(recordHistory = true) {
   components.forEach(component => {
     const rootId = component.ids.includes(requestedRoot)
       ? requestedRoot
-      : [...component.ids].sort(compareNodeIds)[0];
+      : [...component.ids].sort(compareNodeUids)[0];
     layoutTreeComponent(component, rootId, graphCenter({ nodes: component.nodes }));
   });
   state.treeLayout = null;
@@ -3804,7 +3820,7 @@ function clampInteger(value, min, max, fallback) {
 }
 
 function nextNodeId() {
-  const ids = new Set((state.graph?.nodes ?? []).map(node => node.id));
+  const ids = new Set((state.graph?.nodes ?? []).map(node => node.label));
   const numericIds = [...ids].filter(isIntegerToken).map(Number);
   const alphabeticIds = [...ids].filter(id => /^[A-Z]+$/.test(id));
   if (ids.size > 0 && alphabeticIds.length === ids.size) {
@@ -3824,8 +3840,9 @@ function addNodeAt(point) {
   const existingNodes = [...(state.graph?.nodes ?? [])];
   pushUndoSnapshot();
   if (!state.graph) state.graph = { nodes: [], edges: [] };
-  const id = nextNodeId();
-  state.graph.nodes.push({ id, x: point.x, y: point.y });
+  const label = nextNodeId();
+  const id = `n${Date.now().toString(36)}_${label}`;
+  state.graph.nodes.push({ id, label, x: point.x, y: point.y });
   if (autoTree && existingNodes.length) {
     const aboveNodes = existingNodes.filter(node => node.y < point.y);
     const candidates = aboveNodes.length ? aboveNodes : existingNodes;
@@ -3836,10 +3853,10 @@ function addNodeAt(point) {
       return nodeDistance < nearestDistance ? node : nearest;
     }, null);
     const parentDistance = Math.hypot(parent.x - point.x, parent.y - point.y);
-    const referenceSpacing = Math.max(...existingNodes.map(node => nodeRadius(node.id)), 17)
+    const referenceSpacing = Math.max(...existingNodes.map(node => nodeRadius(node.label)), 17)
       * 2 * GENERATED_EDGE_DIAMETER_MULTIPLIER * TREE_LAYOUT_SPACING_SCALE;
     if (parentDistance > referenceSpacing * NEW_TREE_DISTANCE_FACTOR) {
-      commitGraphEdit(`点击位置距离现有树较远，已创建新树根节点 ${id}`);
+      commitGraphEdit(`点击位置距离现有树较远，已创建新树根节点 ${label}`);
       return;
     }
     const weightedTree = state.graph.edges.some(edge => edge.weight !== null && edge.weight !== undefined);
@@ -3847,13 +3864,13 @@ function addNodeAt(point) {
     state.graph.edges.push({ source: parent.id, target: id, weight });
     commitGraphEdit(
       weight === null
-        ? `已创建节点 ${id}，并自动连接到父节点 ${parent.id}`
-        : `已创建节点 ${id}，自动连接到父节点 ${parent.id} · 边权 ${weight}`,
+        ? `已创建节点 ${label}，并自动连接到父节点 ${parent.label}`
+        : `已创建节点 ${label}，自动连接到父节点 ${parent.label} · 边权 ${weight}`,
       { treeCenter: previousCenter }
     );
     return;
   }
-  commitGraphEdit(`已创建节点 ${id}`);
+  commitGraphEdit(`已创建节点 ${label}`);
 }
 
 function selectNodeForEdge(nodeId) {
@@ -3862,7 +3879,7 @@ function selectNodeForEdge(nodeId) {
     state.edgeStart = nodeId;
     document.querySelectorAll(".graph-node.selected").forEach(node => node.classList.remove("selected"));
     elements.nodes.querySelector(`[data-node-id="${CSS.escape(nodeId)}"]`)?.classList.add("selected");
-    elements.selection.textContent = `已选择起点 ${nodeId}，请点击另一个节点`;
+    elements.selection.textContent = `已选择起点 ${nodeLabelOf(nodeId)}，请点击另一个节点`;
     return;
   }
   if (state.edgeStart === nodeId) {
@@ -3880,8 +3897,8 @@ function selectNodeForEdge(nodeId) {
     (edge.source === source && edge.target === nodeId) ||
     (edge.source === nodeId && edge.target === source)).length;
   commitGraphEdit(weight === null
-    ? `已连接节点 ${source} 和 ${nodeId}${parallelCount > 1 ? ` · 当前共 ${parallelCount} 条重边` : ""}`
-    : `已连接节点 ${source} 和 ${nodeId}，随机边权为 ${weight}${parallelCount > 1 ? ` · 当前共 ${parallelCount} 条重边` : ""}`);
+    ? `已连接节点 ${nodeLabelOf(source)} 和 ${nodeLabelOf(nodeId)}${parallelCount > 1 ? ` · 当前共 ${parallelCount} 条重边` : ""}`
+    : `已连接节点 ${nodeLabelOf(source)} 和 ${nodeLabelOf(nodeId)}，随机边权为 ${weight}${parallelCount > 1 ? ` · 当前共 ${parallelCount} 条重边` : ""}`);
 }
 
 function handleDrawNodeTap(nodeId) {
@@ -3946,10 +3963,10 @@ function beginDrawNodeHold(event, nodeElement) {
     updateAllEdges();
     elements.selection.textContent = state.draggingNodeGroup?.length
       ? `长按拖动：正在移动所选的 ${state.draggingNodeGroup.length} 个节点`
-      : `长按拖动：正在移动节点 ${node.id}`;
+      : `长按拖动：正在移动节点 ${node.label}`;
   }, DRAW_NODE_HOLD_MS);
   state.drawNodeHold = hold;
-  elements.selection.textContent = `短按节点 ${node.id} 连线，长按可移动`;
+  elements.selection.textContent = `短按节点 ${node.label} 连线，长按可移动`;
 }
 
 function updateDrawNodeHold(event) {
@@ -4053,12 +4070,13 @@ function finishDrawCanvasInteraction(event) {
 
 function deleteNode(nodeId) {
   if (!state.graph) return;
+  const deletedLabel = nodeLabelOf(nodeId);
   pushUndoSnapshot();
   state.boxSelectedNodeIds.delete(nodeId);
   if (state.mobileAnimatedSelectedNodeId === nodeId) state.mobileAnimatedSelectedNodeId = null;
   state.graph.nodes = state.graph.nodes.filter(node => node.id !== nodeId);
   state.graph.edges = state.graph.edges.filter(edge => edge.source !== nodeId && edge.target !== nodeId);
-  commitGraphEdit(`已删除节点 ${nodeId}`);
+  commitGraphEdit(`已删除节点 ${deletedLabel}`);
 }
 
 function deleteEdge(edgeIndex) {
@@ -4066,7 +4084,7 @@ function deleteEdge(edgeIndex) {
   pushUndoSnapshot();
   const edge = state.graph.edges[edgeIndex];
   state.graph.edges.splice(edgeIndex, 1);
-  commitGraphEdit(`已删除连线 ${edge.source} — ${edge.target}`);
+  commitGraphEdit(`已删除连线 ${nodeLabelOf(edge.source)} — ${nodeLabelOf(edge.target)}`);
 }
 
 function deleteCanvasObject(canvasObject) {
@@ -4101,7 +4119,7 @@ function openEdgeWeightEditor(edgeIndex) {
   state.edgeStart = null;
   state.editingEdgeIndex = edgeIndex;
   document.querySelectorAll(".graph-node.selected").forEach(node => node.classList.remove("selected"));
-  elements.edgeWeightDescription.textContent = `${edge.source} — ${edge.target}`;
+  elements.edgeWeightDescription.textContent = `${nodeLabelOf(edge.source)} — ${nodeLabelOf(edge.target)}`;
   elements.edgeWeightInput.value = edge.weight ?? "";
   if (!elements.edgeWeightDialog.open) elements.edgeWeightDialog.showModal();
   requestAnimationFrame(() => {
@@ -4134,8 +4152,8 @@ function saveEditedEdgeWeight(event) {
   if (nextWeight !== null) elements.showWeights.checked = true;
   elements.edgeWeightDialog.close();
   commitGraphEdit(nextWeight === null
-    ? `已清除边 ${edge.source} — ${edge.target} 的权重`
-    : `已将边 ${edge.source} — ${edge.target} 的权重改为 ${nextWeight}`);
+    ? `已清除边 ${nodeLabelOf(edge.source)} — ${nodeLabelOf(edge.target)} 的权重`
+    : `已将边 ${nodeLabelOf(edge.source)} — ${nodeLabelOf(edge.target)} 的权重改为 ${nextWeight}`);
   saveSettings();
 }
 
@@ -4145,8 +4163,8 @@ function openNodeIdEditor(nodeId) {
   state.edgeStart = null;
   state.editingNodeId = nodeId;
   document.querySelectorAll(".graph-node.selected").forEach(element => element.classList.remove("selected"));
-  elements.nodeIdDescription.textContent = `当前编号：${nodeId}`;
-  elements.nodeIdInput.value = nodeId;
+  elements.nodeIdDescription.textContent = `当前编号：${node.label}`;
+  elements.nodeIdInput.value = node.label;
   elements.nodeIdInput.setCustomValidity("");
   hideError();
   if (elements.edgeWeightDialog.open) elements.edgeWeightDialog.close();
@@ -4173,26 +4191,12 @@ function alphabeticNodeIndex(label) {
     value * 26 + character.charCodeAt(0) - 64, 0) - 1;
 }
 
-function applyNodeIdMap(idMap) {
+function applyNodeIdMap(labelMap) {
   state.graph.nodes.forEach(node => {
-    node.id = idMap.get(node.id) ?? node.id;
+    node.label = labelMap.get(node.label) ?? node.label;
   });
-  state.graph.edges.forEach(edge => {
-    edge.source = idMap.get(edge.source) ?? edge.source;
-    edge.target = idMap.get(edge.target) ?? edge.target;
-  });
-  state.boxSelectedNodeIds = new Set(
-    [...state.boxSelectedNodeIds].map(id => idMap.get(id) ?? id)
-  );
-  if (state.mobileAnimatedSelectedNodeId !== null) {
-    state.mobileAnimatedSelectedNodeId =
-      idMap.get(state.mobileAnimatedSelectedNodeId) ?? state.mobileAnimatedSelectedNodeId;
-  }
-  if (state.selectedNode !== null) {
-    state.selectedNode = idMap.get(state.selectedNode) ?? state.selectedNode;
-  }
   const currentRoot = elements.rootInput.value.trim();
-  if (idMap.has(currentRoot)) elements.rootInput.value = idMap.get(currentRoot);
+  if (labelMap.has(currentRoot)) elements.rootInput.value = labelMap.get(currentRoot);
 }
 
 function saveEditedNodeId(event) {
@@ -4203,14 +4207,13 @@ function saveEditedNodeId(event) {
     elements.nodeIdDialog.close();
     return;
   }
+  const nodeLabel = node.label;
   const nextId = elements.nodeIdInput.value.trim();
-  const renameAllToLetters = oldId === "1" && nextId === "A";
+  const renameAllToLetters = nodeLabel === "1" && nextId === "A";
   let validationMessage = "";
   if (!nextId) validationMessage = "节点编号不能为空";
   else if (/[\s,]/.test(nextId)) validationMessage = "节点编号不能包含空格或逗号";
-  else if (!renameAllToLetters && state.graph.nodes.some(candidate => candidate !== node && candidate.id === nextId)) {
-    validationMessage = `节点编号 ${nextId} 已存在`;
-  }
+  // 允许编号重复：节点编号相同是合法的，因此不再校验「编号已存在」。
   elements.nodeIdInput.setCustomValidity(validationMessage);
   if (validationMessage) {
     elements.nodeIdInput.reportValidity();
@@ -4218,7 +4221,7 @@ function saveEditedNodeId(event) {
     elements.nodeIdInput.select();
     return;
   }
-  if (nextId === oldId) {
+  if (nextId === nodeLabel) {
     elements.nodeIdDialog.close();
     return;
   }
@@ -4228,16 +4231,16 @@ function saveEditedNodeId(event) {
   if (renameAllToLetters) {
     const orderedOthers = state.graph.nodes
       .filter(candidate => candidate !== node)
-      .sort((first, second) => compareNodeIds(first.id, second.id));
-    const idMap = new Map([[oldId, "A"]]);
+      .sort((first, second) => compareNodeIds(first.label, second.label));
+    const labelMap = new Map([[nodeLabel, "A"]]);
     orderedOthers.forEach((candidate, index) => {
-      idMap.set(candidate.id, alphabeticNodeId(index + 1));
+      labelMap.set(candidate.label, alphabeticNodeId(index + 1));
     });
-    applyNodeIdMap(idMap);
+    applyNodeIdMap(labelMap);
     message = `已将 ${state.graph.nodes.length} 个节点依次重编号为字母`;
   } else {
-    applyNodeIdMap(new Map([[oldId, nextId]]));
-    message = `已将节点 ${oldId} 的编号修改为 ${nextId}`;
+    applyNodeIdMap(new Map([[nodeLabel, nextId]]));
+    message = `已将节点 ${nodeLabel} 的编号修改为 ${nextId}`;
   }
   state.edgeStart = null;
   elements.nodeIdDialog.close();
@@ -4284,7 +4287,7 @@ function beginDeleteGesture(event, target) {
       node.y = point.y - (target.pointerOffsetY || 0);
       nodeElement.setAttribute("transform", `translate(${point.x} ${point.y})`);
       updateAllEdges();
-      elements.selection.textContent = `正在移动节点 ${target.nodeId}`;
+      elements.selection.textContent = `正在移动节点 ${nodeLabelOf(target.nodeId)}`;
       return;
     }
     state.deleteGestureActive = true;
@@ -4424,19 +4427,27 @@ function updateDataInput() {
     return;
   }
   const nodeLines = state.graph.nodes
-    .map(node => node.id)
+    .map(node => node.label)
     .sort(compareNodeIds);
   const edgeLines = state.graph.edges.map(edge =>
-    [edge.source, edge.target, edge.weight].filter(value => value !== null && value !== undefined).join(" "));
+    [nodeLabelOf(edge.source), nodeLabelOf(edge.target), edge.weight].filter(value => value !== null && value !== undefined).join(" "));
   if (document.body.dataset.mobileStandalone === "true") {
     // 移动版保持原有逐节点、逐边格式。
     elements.input.value = [...nodeLines, ...edgeLines].join("\n");
     return;
   }
-  const connectedNodeIds = new Set(state.graph.edges.flatMap(edge => [edge.source, edge.target]));
+  const connectedNodeIds = new Set(state.graph.edges.flatMap(edge => [nodeLabelOf(edge.source), nodeLabelOf(edge.target)]));
   const isolatedNodeLines = nodeLines.filter(id => !connectedNodeIds.has(id));
   const header = `${state.graph.nodes.length} ${state.graph.edges.length}`;
   elements.input.value = [header, ...edgeLines, ...isolatedNodeLines].join("\n");
+}
+
+function nodeLabelOf(uid) {
+  return state.graph?.nodes.find(node => node.id === uid)?.label ?? String(uid);
+}
+
+function compareNodeUids(a, b) {
+  return compareNodeIds(nodeLabelOf(a), nodeLabelOf(b));
 }
 
 function compareNodeIds(a, b) {
@@ -4544,12 +4555,18 @@ function buildFixedLengthRandomGraph(count, type, treeKind) {
   }
 
   const nodes = placements.map((placement, index) => ({
-    id: String(index + 1),
+    id: `n${Date.now().toString(36)}_${index + 1}`,
+    label: String(index + 1),
     x: placement.x,
     y: placement.y,
     latticeQ: placement.q,
     latticeR: placement.r
   }));
+  const idByIndex = new Map(nodes.map((node, index) => [String(index + 1), node.id]));
+  edges.forEach(edge => {
+    edge.source = idByIndex.get(edge.source);
+    edge.target = idByIndex.get(edge.target);
+  });
   return { nodes, edges, uniformNodeRadius, generatedEdgeLength };
 }
 
@@ -4947,7 +4964,7 @@ elements.canvasWrap.addEventListener("pointerdown", event => {
     document.querySelectorAll(".graph-node.selected").forEach(el => el.classList.remove("selected"));
     nodeElement.classList.add("selected");
     state.selectedNode = state.draggingNode.id;
-    elements.selection.textContent = `已选择节点 ${state.selectedNode}`;
+    elements.selection.textContent = `已选择节点 ${nodeLabelOf(state.selectedNode)}`;
   } else {
     clearTextObjectSelection();
     beginCanvasSelectionHold(event);
@@ -4996,7 +5013,7 @@ elements.canvasWrap.addEventListener("pointermove", event => {
       updateAllEdges();
       elements.selection.textContent = state.draggingNodeGroup?.length
         ? `正在移动所选的 ${state.draggingNodeGroup.length} 个节点`
-        : `正在移动节点 ${state.draggingNode.id}`;
+        : `正在移动节点 ${state.draggingNode.label}`;
     }
   } else if (state.edgeSelectionPending) {
     const pending = state.edgeSelectionPending;
@@ -5165,11 +5182,11 @@ function endPointer(event) {
         else organizeTreeForest(false);
         elements.selection.textContent = movedNodeCount > 1
           ? `已同时移动 ${movedNodeCount} 个所选节点 · 已恢复自动整理`
-          : `已移动节点 ${state.draggingNode.id} · 已恢复自动整理`;
+          : `已移动节点 ${state.draggingNode.label} · 已恢复自动整理`;
       } else {
         elements.selection.textContent = movedNodeCount > 1
           ? `已同时移动 ${movedNodeCount} 个所选节点`
-          : `已移动节点 ${state.draggingNode.id}`;
+          : `已移动节点 ${state.draggingNode.label}`;
       }
     }
   }
