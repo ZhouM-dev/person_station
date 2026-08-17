@@ -92,6 +92,46 @@ article pre {
 article pre code { background: none; padding: 0; }
 article img { max-width: 100%; border-radius: 6px; }
 
+/* 工具区 */
+.tools { padding: 8px 0 24px; }
+.tools h2 { font-size: 1.4rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.tool-card {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.tool-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 6px 20px rgba(9, 105, 218, .08);
+}
+.tool-icon { font-size: 2rem; line-height: 1; }
+.tool-info { display: flex; flex-direction: column; }
+.tool-name { font-size: 1.05rem; font-weight: 700; margin: 0 0 4px; }
+.tool-desc { color: var(--muted); font-size: 0.9rem; margin: 0 0 12px; line-height: 1.5; }
+.tool-links { display: flex; gap: 8px; }
+.tool-btn {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  text-decoration: none;
+  color: var(--fg);
+  transition: border-color .15s, color .15s;
+}
+.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tool-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tool-btn.primary:hover { opacity: .9; color: #fff; }
+
 /* 页脚 */
 .site-footer {
   border-top: 1px solid var(--border);

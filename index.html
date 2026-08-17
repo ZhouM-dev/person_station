@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>个人站 · Person Station</title>
-  <meta name="description" content="我的个人内容站，记录想法与作品。">
+  <meta name="description" content="我的个人内容站：文章、想法与在线工具。">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -13,6 +13,7 @@
       <a class="site-title" href="index.html">个人站</a>
       <nav class="site-nav">
         <a href="index.html">首页</a>
+        <a href="#tools">工具</a>
         <a href="posts/hello-world.html">文章</a>
       </nav>
     </div>
@@ -21,7 +22,24 @@
   <main class="container">
     <section class="hero">
       <h1>你好，欢迎来访 👋</h1>
-      <p class="hero-sub">这里是我的个人内容站，用于发布文章、想法与作品。</p>
+      <p class="hero-sub">这里是我的个人内容站，用于发布文章、想法与在线工具。</p>
+    </section>
+
+    <section class="tools" id="tools">
+      <h2>在线工具</h2>
+      <div class="tool-grid">
+        <div class="tool-card">
+          <span class="tool-icon" aria-hidden="true">📊</span>
+          <div class="tool-info">
+            <h3 class="tool-name">Graph Studio · 图数据可视化</h3>
+            <p class="tool-desc">轻量图数据可视化工具，支持力导向布局、节点编辑与自由涂画。</p>
+            <div class="tool-links">
+              <a class="tool-btn primary" href="graph/index.html">桌面版</a>
+              <a class="tool-btn" href="graph/mobile.html">移动版</a>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="posts">
