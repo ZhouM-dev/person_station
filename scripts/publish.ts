@@ -1,5 +1,6 @@
-// 一键发布：渲染内容 + 提交 + 推送到 GitHub Pages
+// 提交并推送当前工作分支：渲染 + 提交 + 推送到自己的分支
 // 用法：bun scripts/publish.ts "提交说明"
+// 推送后到 GitHub 创建 Pull Request 合并到 main 即完成发布
 import { execSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,7 +24,8 @@ console.log("\n== 2/3 提交改动 ==");
 run("git add -A");
 run(`git commit -m "${msg}"`, true); // 无改动时失败是正常的
 
-console.log("\n== 3/3 推送到 GitHub ==");
+console.log("\n== 3/3 推送到自己的分支 ==");
 run("git push");
 
-console.log("\n发布完成 ✅ 站点将在一两分钟内更新上线。");
+console.log("\n已推送到当前工作分支 ✅");
+console.log("下一步：在 GitHub 创建 Pull Request 合并到 main 即可发布上线。");
