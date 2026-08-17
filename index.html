@@ -36,12 +36,27 @@
             <div class="tool-links">
               <a class="tool-btn primary" href="graph/index.html">桌面版</a>
               <a class="tool-btn" href="graph/mobile.html">移动版</a>
+              <button class="tool-btn" id="manualBtn" type="button">功能手册</button>
             </div>
           </div>
         </div>
       </div>
     </section>
   </main>
+
+  <!-- 功能手册模态框 -->
+  <div class="manual-modal" id="manualModal" aria-hidden="true">
+    <div class="manual-modal-backdrop" data-manual-close></div>
+    <div class="manual-modal-box" role="dialog" aria-modal="true" aria-labelledby="manualTitle">
+      <header class="manual-modal-header">
+        <h2 id="manualTitle">Graph Studio · 功能手册</h2>
+        <button class="manual-modal-close" type="button" data-manual-close aria-label="关闭">×</button>
+      </header>
+      <div class="manual-modal-body" id="manualBody">
+        <p class="manual-loading">正在加载手册…</p>
+      </div>
+    </div>
+  </div>
 
   <footer class="site-footer">
     <div class="container">
