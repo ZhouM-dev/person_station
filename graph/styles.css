@@ -66,8 +66,11 @@ button { color: inherit; }
 .sidebar-toggle { position: absolute; right: 15px; display: grid; place-items: center; width: 27px; height: 27px; padding: 0; border: 1px solid #2a374d; border-radius: 7px; background: #151f32; color: #8794aa; cursor: pointer; transition: .18s; }
 .sidebar-toggle:hover { border-color: #6259a8; background: #211f43; color: #b8a8ff; }
 .sidebar-toggle svg { width: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .24s; }
+.home-link { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 10px 27px 16px; padding: 8px 9px; border: 1px solid #2a374d; border-radius: 7px; color: #8794aa; text-decoration: none; font-size: 10px; transition: .18s; }
+.home-link:hover { border-color: #6259a8; background: #211f43; color: #b8a8ff; }
+.home-link svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .sidebar-collapsed .brand { justify-content: center; padding: 17px 10px; border-bottom: 0; }
-.sidebar-collapsed .brand-mark, .sidebar-collapsed .brand-copy, .sidebar-collapsed .editor-section, .sidebar-collapsed .settings-section, .sidebar-collapsed .shortcuts-section { display: none; }
+.sidebar-collapsed .brand-mark, .sidebar-collapsed .brand-copy, .sidebar-collapsed .home-link, .sidebar-collapsed .editor-section, .sidebar-collapsed .settings-section, .sidebar-collapsed .shortcuts-section { display: none; }
 .sidebar-collapsed .sidebar-toggle { position: static; width: 30px; height: 24px; }
 .sidebar-collapsed .sidebar-toggle svg { transform: rotate(180deg); }
 .collapsed-shortcuts { display: none; }
@@ -348,6 +351,8 @@ body[data-mobile-standalone="true"] .canvas-table-editor td { padding: 1px 2px; 
 :root[data-theme="light"] .sidebar { box-shadow: 12px 0 35px rgba(31,39,75,.06); }
 :root[data-theme="light"] .sidebar-toggle { border-color: #dce1ea; background: #f7f9fc; color: #748098; }
 :root[data-theme="light"] .sidebar-toggle:hover { border-color: #bdb6f3; background: #efedff; color: #6558e8; }
+:root[data-theme="light"] .home-link { border-color: #dce1ea; background: #f7f9fc; color: #748098; }
+:root[data-theme="light"] .home-link:hover { border-color: #bdb6f3; background: #efedff; color: #6558e8; }
 :root[data-theme="light"] .text-button { color: #4d65d9; }
 :root[data-theme="light"] textarea,
 :root[data-theme="light"] .tree-tools-controls input { border-color: #dce2ec; background: #f8fafc; color: #303b53; }
