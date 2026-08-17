@@ -15,7 +15,7 @@
 
 **入口逻辑**：打开 `index.html` 时，若检测到移动设备或窗口宽度 < 768px，会自动跳转到 `mobile.html`。移动版也可作为单文件独立部署。
 
-**返回主页**：两个版本左侧栏底部的「返回主页」按钮，点击回到个人主页 `https://zhoum-dev.github.io/person_station/`。
+**返回主页**：两个版本左侧栏底部的「返回主页」按钮（房子图标 + 文字），点击回到个人主页 `https://zhoum-dev.github.io/person_station/`。
 
 ---
 
