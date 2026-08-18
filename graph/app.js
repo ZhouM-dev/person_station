@@ -22,6 +22,7 @@ const elements = {
   input: document.querySelector("#dataInput"),
   directed: document.querySelector("#directedInput"),
   showWeights: document.querySelector("#weightInput"),
+  showNodeWeights: document.querySelector("#nodeWeightInput"),
   mobilePenOnly: document.querySelector("#mobilePenOnlyInput"),
   example: document.querySelector("#exampleBtn"),
   modeButtons: [...document.querySelectorAll("[data-mode]")],
@@ -69,7 +70,8 @@ const elements = {
   nodeIdForm: document.querySelector("#nodeIdForm"),
   nodeIdInput: document.querySelector("#nodeIdInput"),
   nodeIdDescription: document.querySelector("#nodeIdDescription"),
-  nodeIdCancel: document.querySelector("#nodeIdCancel")
+  nodeIdCancel: document.querySelector("#nodeIdCancel"),
+  nodeWeightEdit: document.querySelector("#nodeWeightEdit")
 };
 
 const state = {
@@ -175,13 +177,26 @@ function parseGraph(raw) {
 
   let nodeCount = null;
   let edgeLines = lines;
+  let nodeWeightValues = null;
   const first = lines[0].text.split(/[\s,]+/);
   const possibleHeader = first.length === 2 && first.every(isIntegerToken);
-  const remainingParts = lines.slice(1).map(line => line.text.split(/[\s,]+/));
-  const remainingEdgeCount = remainingParts.filter(parts => parts.length >= 2).length;
-  const remainingNodeIds = new Set(remainingParts.flatMap(parts => parts.slice(0, Math.min(2, parts.length))));
   const declaredNodeCount = possibleHeader ? Number(first[0]) : null;
   const declaredEdgeCount = possibleHeader ? Number(first[1]) : null;
+  // 首行声明「节点数 边数」时，第二行 token 数若等于节点数，视为点权行（按节点编号顺序）。
+  let headerBody = lines.slice(1);
+  if (possibleHeader && declaredNodeCount > 0) {
+    const secondLine = headerBody[0];
+    if (secondLine) {
+      const secondParts = secondLine.text.split(/[\s,]+/).filter(Boolean);
+      if (secondParts.length === declaredNodeCount) {
+        nodeWeightValues = secondParts;
+        headerBody = headerBody.slice(1);
+      }
+    }
+  }
+  const remainingParts = headerBody.map(line => line.text.split(/[\s,]+/));
+  const remainingEdgeCount = remainingParts.filter(parts => parts.length >= 2).length;
+  const remainingNodeIds = new Set(remainingParts.flatMap(parts => parts.slice(0, Math.min(2, parts.length))));
   const numericRemainingIds = [...remainingNodeIds].every(isIntegerToken);
   const headerNodeRangeValid = !numericRemainingIds || [...remainingNodeIds].every(id => {
     const value = Number(id);
@@ -190,11 +205,12 @@ function parseGraph(raw) {
   const headerCountsValid = possibleHeader && remainingEdgeCount === declaredEdgeCount &&
     remainingNodeIds.size <= declaredNodeCount && headerNodeRangeValid;
   if (headerCountsValid) {
-    nodeCount = Number(first[0]);
-    edgeLines = lines.slice(1);
+    nodeCount = declaredNodeCount;
+    edgeLines = headerBody;
   }
 
   const nodeIds = new Set();
+  const nodeWeights = new Map();
   const edges = [];
   edgeLines.forEach(line => {
     const parts = line.text.split(/[\s,]+/).filter(Boolean);
@@ -202,7 +218,14 @@ function parseGraph(raw) {
       throw new Error(`第 ${line.number} 行格式有误，应为：节点，或 起点 终点 [权重]`);
     }
     if (parts.length === 1) {
-      nodeIds.add(parts[0]);
+      const token = parts[0];
+      const colon = token.lastIndexOf(":");
+      if (colon > 0 && colon < token.length - 1) {
+        nodeWeights.set(token.slice(0, colon), token.slice(colon + 1));
+        nodeIds.add(token.slice(0, colon));
+      } else {
+        nodeIds.add(token);
+      }
       return;
     }
     const [source, target, weight] = parts;
@@ -220,13 +243,20 @@ function parseGraph(raw) {
       const zeroBased = nums.includes(0);
       for (let i = zeroBased ? 0 : 1; i < (zeroBased ? nodeCount : nodeCount + 1); i++) nodeIds.add(String(i));
     }
+    // 点权行赋值：按节点编号顺序（0-based 从 0 起，否则从 1 起）。
+    if (nodeWeightValues) {
+      const zeroBased = nodeIds.has("0");
+      nodeWeightValues.forEach((weight, index) => {
+        nodeWeights.set(String(zeroBased ? index : index + 1), weight);
+      });
+    }
   }
   if (nodeIds.size > 500 || edges.length > 2000) throw new Error("为保证流畅，最多支持 500 个节点和 2000 条边");
   // 内部用唯一 id（uid）定位节点，label 为可重复的显示编号。
   let uidSeed = 0;
   const nodeByLabel = new Map();
   const nodes = [...nodeIds].map(label => {
-    const node = { id: `n${uidSeed++}`, label, x: 0, y: 0 };
+    const node = { id: `n${uidSeed++}`, label, x: 0, y: 0, weight: nodeWeights.get(label) ?? null };
     nodeByLabel.set(label, node);
     return node;
   });
@@ -570,6 +600,9 @@ function renderGraph() {
     group.append(svgElement("circle", { class: "node-selection-ring", r: nodeRadius(node.label) + 7 }));
     group.append(svgElement("circle", { class: "node-circle", r: nodeRadius(node.label) }));
     group.append(svgElement("text", { class: "node-label" }, node.label));
+    if (node.weight !== null && node.weight !== undefined && elements.showNodeWeights.checked) {
+      group.append(svgElement("text", { class: "node-weight", "data-node-weight": node.id, y: nodeRadius(node.label) + 12 }, node.weight));
+    }
     group.classList.toggle("box-selected", state.boxSelectedNodeIds.has(node.id));
     group.classList.toggle("mobile-active-selection",
       document.body.dataset.mobileStandalone === "true"
@@ -712,6 +745,7 @@ function captureSnapshot() {
     inputValue: state.lastCommittedInput,
     directed: elements.directed.checked,
     showWeights: elements.showWeights.checked,
+    showNodeWeights: elements.showNodeWeights.checked,
     drawingMarkup: getDrawingMarkup(),
     scale: state.scale,
     offsetX: state.offsetX,
@@ -926,6 +960,7 @@ function restoreSnapshot(snapshot, message) {
   elements.input.value = snapshot.inputValue;
   elements.directed.checked = snapshot.directed;
   elements.showWeights.checked = snapshot.showWeights;
+  elements.showNodeWeights.checked = snapshot.showNodeWeights !== false;
   renderGraph();
   elements.drawing.innerHTML = snapshot.drawingMarkup || "";
   state.drawingMarkupCache = snapshot.drawingMarkup || "";
@@ -1848,7 +1883,8 @@ function duplicateSelectedComponent() {
         id: `dup${stamp}_${index}`,
         label: node.label,
         x: node.x + offset,
-        y: node.y + offset
+        y: node.y + offset,
+        weight: node.weight
       };
       uidMap.set(node.id, newNode.id);
       return newNode;
@@ -2891,7 +2927,9 @@ function addNodeAt(point) {
   if (!state.graph) state.graph = { nodes: [], edges: [] };
   const label = nextNodeId();
   const id = `n${Date.now().toString(36)}_${label}`;
-  state.graph.nodes.push({ id, label, x: point.x, y: point.y });
+  const weightedNodes = existingNodes.some(node => node.weight !== null && node.weight !== undefined);
+  const nodeWeight = weightedNodes ? String(randomInteger(1, 10)) : null;
+  state.graph.nodes.push({ id, label, x: point.x, y: point.y, weight: nodeWeight });
   if (autoTree && existingNodes.length) {
     const aboveNodes = existingNodes.filter(node => node.y < point.y);
     const candidates = aboveNodes.length ? aboveNodes : existingNodes;
@@ -2905,21 +2943,20 @@ function addNodeAt(point) {
     const referenceSpacing = Math.max(...existingNodes.map(node => nodeRadius(node.label)), 17)
       * 2 * GENERATED_EDGE_DIAMETER_MULTIPLIER * TREE_LAYOUT_SPACING_SCALE;
     if (parentDistance > referenceSpacing * NEW_TREE_DISTANCE_FACTOR) {
-      commitGraphEdit(`点击位置距离现有树较远，已创建新树根节点 ${label}`);
+      commitGraphEdit(`点击位置距离现有树较远，已创建新树根节点 ${label}${nodeWeight !== null ? ` · 点权 ${nodeWeight}` : ""}`);
       return;
     }
     const weightedTree = state.graph.edges.some(edge => edge.weight !== null && edge.weight !== undefined);
     const weight = weightedTree ? String(randomInteger(1, 10)) : null;
     state.graph.edges.push({ source: parent.id, target: id, weight });
+    const note = [nodeWeight !== null ? `点权 ${nodeWeight}` : null, weight !== null ? `边权 ${weight}` : null].filter(Boolean).join(" · ");
     commitGraphEdit(
-      weight === null
-        ? `已创建节点 ${label}，并自动连接到父节点 ${parent.label}`
-        : `已创建节点 ${label}，自动连接到父节点 ${parent.label} · 边权 ${weight}`,
+      `已创建节点 ${label}，并自动连接到父节点 ${parent.label}${note ? ` · ${note}` : ""}`,
       { treeCenter: previousCenter }
     );
     return;
   }
-  commitGraphEdit(`已创建节点 ${label}`);
+  commitGraphEdit(nodeWeight === null ? `已创建节点 ${label}` : `已创建节点 ${label} · 点权 ${nodeWeight}`);
 }
 
 function selectNodeForEdge(nodeId) {
@@ -3215,6 +3252,8 @@ function openNodeIdEditor(nodeId) {
   elements.nodeIdDescription.textContent = `当前编号：${node.label}`;
   elements.nodeIdInput.value = node.label;
   elements.nodeIdInput.setCustomValidity("");
+  elements.nodeWeightEdit.value = node.weight ?? "";
+  elements.nodeWeightEdit.setCustomValidity("");
   hideError();
   if (elements.edgeWeightDialog.open) elements.edgeWeightDialog.close();
   if (!elements.nodeIdDialog.open) elements.nodeIdDialog.showModal();
@@ -3270,30 +3309,52 @@ function saveEditedNodeId(event) {
     elements.nodeIdInput.select();
     return;
   }
-  if (nextId === nodeLabel) {
+
+  // 点权校验（与边权一致：不能包含空格或逗号）。
+  const nextWeightRaw = elements.nodeWeightEdit.value.trim();
+  elements.nodeWeightEdit.setCustomValidity("");
+  if (/[\s,]/.test(nextWeightRaw)) {
+    elements.nodeWeightEdit.setCustomValidity("点权不能包含空格或逗号");
+    elements.nodeWeightEdit.reportValidity();
+    elements.nodeWeightEdit.focus();
+    elements.nodeWeightEdit.select();
+    return;
+  }
+  const nextWeight = nextWeightRaw || null;
+
+  const idChanged = nextId !== nodeLabel;
+  const weightChanged = nextWeight !== (node.weight ?? null);
+  if (!idChanged && !weightChanged) {
     elements.nodeIdDialog.close();
     return;
   }
 
   pushUndoSnapshot();
-  let message;
-  if (renameAllToLetters) {
-    const orderedOthers = state.graph.nodes
-      .filter(candidate => candidate !== node)
-      .sort((first, second) => compareNodeIds(first.label, second.label));
-    const labelMap = new Map([[nodeLabel, "A"]]);
-    orderedOthers.forEach((candidate, index) => {
-      labelMap.set(candidate.label, alphabeticNodeId(index + 1));
-    });
-    applyNodeIdMap(labelMap);
-    message = `已将 ${state.graph.nodes.length} 个节点依次重编号为字母`;
-  } else {
-    applyNodeIdMap(new Map([[nodeLabel, nextId]]));
-    message = `已将节点 ${nodeLabel} 的编号修改为 ${nextId}`;
+  const messages = [];
+  if (idChanged) {
+    if (renameAllToLetters) {
+      const orderedOthers = state.graph.nodes
+        .filter(candidate => candidate !== node)
+        .sort((first, second) => compareNodeIds(first.label, second.label));
+      const labelMap = new Map([[nodeLabel, "A"]]);
+      orderedOthers.forEach((candidate, index) => {
+        labelMap.set(candidate.label, alphabeticNodeId(index + 1));
+      });
+      applyNodeIdMap(labelMap);
+      messages.push(`已将 ${state.graph.nodes.length} 个节点依次重编号为字母`);
+    } else {
+      applyNodeIdMap(new Map([[nodeLabel, nextId]]));
+      messages.push(`已将节点 ${nodeLabel} 的编号修改为 ${nextId}`);
+    }
+  }
+  if (weightChanged) {
+    node.weight = nextWeight;
+    if (nextWeight !== null) elements.showNodeWeights.checked = true;
+    messages.push(nextWeight === null ? "已清除点权" : `点权改为 ${nextWeight}`);
   }
   state.edgeStart = null;
   elements.nodeIdDialog.close();
-  commitGraphEdit(message);
+  commitGraphEdit(messages.join(" · "));
   saveSettings();
 }
 
@@ -3475,20 +3536,30 @@ function updateDataInput() {
     elements.input.value = "";
     return;
   }
-  const nodeLines = state.graph.nodes
-    .map(node => node.label)
-    .sort(compareNodeIds);
+  const sortedNodes = state.graph.nodes
+    .slice()
+    .sort((a, b) => compareNodeIds(a.label, b.label));
+  const nodeLine = node => node.weight !== null && node.weight !== undefined
+    ? `${node.label}:${node.weight}` : node.label;
   const edgeLines = state.graph.edges.map(edge =>
     [nodeLabelOf(edge.source), nodeLabelOf(edge.target), edge.weight].filter(value => value !== null && value !== undefined).join(" "));
   if (document.body.dataset.mobileStandalone === "true") {
     // 移动版保持原有逐节点、逐边格式。
-    elements.input.value = [...nodeLines, ...edgeLines].join("\n");
+    elements.input.value = [...sortedNodes.map(nodeLine), ...edgeLines].join("\n");
     return;
   }
   const connectedNodeIds = new Set(state.graph.edges.flatMap(edge => [nodeLabelOf(edge.source), nodeLabelOf(edge.target)]));
-  const isolatedNodeLines = nodeLines.filter(id => !connectedNodeIds.has(id));
+  const isolatedNodeLines = sortedNodes.filter(node => !connectedNodeIds.has(node.label)).map(nodeLine);
   const header = `${state.graph.nodes.length} ${state.graph.edges.length}`;
-  elements.input.value = [header, ...edgeLines, ...isolatedNodeLines].join("\n");
+  const allWeighted = state.graph.nodes.length > 0 &&
+    state.graph.nodes.every(node => node.weight !== null && node.weight !== undefined);
+  if (allWeighted) {
+    // 所有节点都有点权时，导出「点权行」格式：n m + 点权行 + 边行。
+    const weightLine = sortedNodes.map(node => node.weight).join(" ");
+    elements.input.value = [header, weightLine, ...edgeLines].join("\n");
+  } else {
+    elements.input.value = [header, ...edgeLines, ...isolatedNodeLines].join("\n");
+  }
 }
 
 function nodeLabelOf(uid) {
@@ -3608,6 +3679,7 @@ function buildFixedLengthRandomGraph(count, type, treeKind) {
     label: String(index + 1),
     x: placement.x,
     y: placement.y,
+    weight: String(randomInteger(1, 10)),
     latticeQ: placement.q,
     latticeR: placement.r
   }));
@@ -3681,6 +3753,7 @@ function saveSettings() {
     mode: state.stylusPageDeleteActive ? state.stylusPageDeleteReturnMode : state.mode,
     directed: elements.directed.checked,
     showWeights: elements.showWeights.checked,
+    showNodeWeights: elements.showNodeWeights.checked,
     rootId: elements.rootInput.value,
     randomNodeCount: elements.randomNodeCount.value,
     randomType: elements.randomType.value,
@@ -3713,6 +3786,7 @@ function restoreSettings() {
   if (settings && typeof settings === "object") {
     elements.directed.checked = Boolean(settings.directed);
     elements.showWeights.checked = settings.showWeights !== false;
+    elements.showNodeWeights.checked = settings.showNodeWeights !== false;
     if (typeof settings.rootId === "string") elements.rootInput.value = settings.rootId;
     if (settings.randomNodeCount !== undefined) elements.randomNodeCount.value = settings.randomNodeCount;
     if (["graph", "tree"].includes(settings.randomType)) elements.randomType.value = settings.randomType;
@@ -4481,9 +4555,11 @@ elements.edgeWeightDialog.addEventListener("close", () => { state.editingEdgeInd
 elements.nodeIdForm.addEventListener("submit", saveEditedNodeId);
 elements.nodeIdCancel.addEventListener("click", () => elements.nodeIdDialog.close());
 elements.nodeIdInput.addEventListener("input", () => elements.nodeIdInput.setCustomValidity(""));
+elements.nodeWeightEdit.addEventListener("input", () => elements.nodeWeightEdit.setCustomValidity(""));
 elements.nodeIdDialog.addEventListener("close", () => {
   state.editingNodeId = null;
   elements.nodeIdInput.setCustomValidity("");
+  elements.nodeWeightEdit.setCustomValidity("");
 });
 [elements.randomNodeCount, elements.randomType, elements.tableCellWidth, elements.tableCellHeight, elements.tableFontSize]
   .forEach(control => control.addEventListener("change", saveSettings));
@@ -4516,6 +4592,7 @@ elements.example.addEventListener("click", () => {
 });
 elements.directed.addEventListener("change", () => { if (state.graph) renderGraph(); saveSettings(); });
 elements.showWeights.addEventListener("change", () => { if (state.graph) renderGraph(); saveSettings(); });
+elements.showNodeWeights.addEventListener("change", () => { if (state.graph) renderGraph(); saveSettings(); });
 elements.mobilePenOnly.addEventListener("change", () => {
   resetMobileInputState(true);
   syncMobilePenOnlyUI(true);
