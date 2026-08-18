@@ -280,6 +280,7 @@ kbd { padding: 1px 4px; border: 1px solid #344057; border-bottom-width: 2px; bor
 .graph-node.long-press-moving .node-circle { fill: #15382f; stroke: #67e8b7; stroke-width: 4; }
 .graph-node.long-press-moving .node-label { fill: #b7ffe1; font-size: 13px; }
 .node-label { fill: #7ee8ff; text-anchor: middle; dominant-baseline: middle; font-size: 11px; font-weight: 750; pointer-events: none; }
+.node-weight { paint-order: stroke; stroke: var(--canvas); stroke-width: 3px; stroke-linejoin: round; fill: #ffd166; text-anchor: middle; font-size: 10px; font-weight: 700; pointer-events: none; }
 @keyframes selected-node-pulse { 0%, 100% { opacity: .7; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.06); } }
 body[data-mobile-standalone="true"] .graph-node.box-selected.mobile-active-selection .node-selection-ring {
   animation: selected-node-pulse 1.15s ease-in-out infinite;

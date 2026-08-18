@@ -2,7 +2,7 @@
 
 > 本文件是**开发用索引**（非用户手册，用户手册见 `MANUAL.md`）。
 > 用途：快速定位改动区段，避免每次通读全文件。
-> **行号快照日期：2026-08-17**（此后每次改动后，本文件关键锚点可能偏移，改动后建议顺手更新对应行号）。
+> **行号快照日期：2026-08-18**（点权功能加入，函数行号较上一快照有偏移，定位请以 grep 为准）。
 
 ---
 
@@ -13,12 +13,13 @@
   - `index.html` — 桌面版，`<link styles.css>` + `<script src="app.js">`，非单文件。
   - `mobile.html` — 移动版，**单文件全内联**（CSS 10–720，HTML 722–~990，JS ~990–5582）。
 - **改动双同步**：`app.js` 与 `mobile.html` 内联 JS 是**同一套代码副本**，功能改动几乎总需两处同步（mobile 行号≠app 行号，以 grep 为准）。
-- **数据模型**（2026-08-17 起）：
-  - `node = { id: uid(唯一, 内部定位), label: 编号(可重复, 显示用), x, y }`
+- **数据模型**（2026-08-17 起，2026-08-18 加 `weight` 点权）：
+  - `node = { id: uid(唯一, 内部定位), label: 编号(可重复, 显示用), x, y, weight(点权, 可 null) }`
   - `edge = { source: uid, target: uid, weight }`
   - 布局/选择/拖拽/删除用 `id`(uid)；显示/导出/比较用 `label`。
   - `nodeLabelOf(uid)` 取显示编号；`compareNodeUids(a,b)` 按 label 排序 uid。
 - **近期行为约定**：
+  - 点权：节点可选数值属性，输入格式 `label:weight`（单列冒号）或首行 `n m` + 第二行 n 个点权值（点权行，`parseGraph` 的 `nodeWeightValues`）+ 第三行起边；「显示点权」开关 `#nodeWeightInput`（默认开）控制节点下方 `.node-weight` 小字；导出时全部节点带点权则输出点权行格式（`updateDataInput` 的 `allWeighted`/`weightLine`）；双击节点（绘制模式）打开「编辑节点」对话框 `#nodeIdDialog` 可同时改编号与点权（`#nodeWeightEdit`）；随机生成与绘制建节点自动带点权（1–10，绘制按「图内已有带点权节点则新节点带权」规则）。
   - 「返回主页」按钮：侧栏底部（`.home-link`），带文字，指向 `https://zhoum-dev.github.io/person_station/`。
   - 「清除」按钮：任何模式下始终显示（`.brush-tools` 不再整体隐藏，只隐藏 select/.color-palette）。
   - 表格：单元格宽/高/字号三设置；拖拽绘制实时预览网格；松手按单元格尺寸自动算行列。
