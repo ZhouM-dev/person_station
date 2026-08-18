@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>共享资源 · 个人站</title>
+  <meta name="description" content="共享资源区：资料文件、文档与图片。">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .res-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .92rem; }
+    .res-table th, .res-table td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+    .res-table th { background: var(--code-bg); font-weight: 600; }
+    .res-table code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: .9em; }
+    .qr-wrap { margin: 16px 0 0; }
+    .qr-img { display: block; width: 260px; max-width: 100%; border: 1px solid var(--border); border-radius: 12px; }
+    .qr-caption { color: var(--muted); font-size: .85rem; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="site-title" href="../../index.html">个人站</a>
+      <nav class="site-nav">
+        <a href="../../index.html">首页</a>
+        <a href="#catalog">分类</a>
+        <a href="#images">图片</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>共享资源</h1>
+      <p class="hero-sub">资料文件、文档与图片的共享区，统一从这里取用。</p>
+    </section>
+
+    <section class="tools" id="catalog">
+      <h2>资源分类</h2>
+      <table class="res-table">
+        <thead>
+          <tr><th>子目录</th><th>用途</th><th>示例</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>docs/</code></td><td>文档类（PDF、说明、手册、Markdown 等）</td><td><code>guide.pdf</code>、<code>manual.md</code></td></tr>
+          <tr><td><code>images/</code></td><td>图片类（插图、配图、图标、封面等）</td><td><code>cover.png</code>、<code>logo.svg</code></td></tr>
+          <tr><td><code>files/</code></td><td>其他文件（压缩包、数据、模板、附件等）</td><td><code>dataset.zip</code>、<code>template.xlsx</code></td></tr>
+        </tbody>
+      </table>
+      <p class="tool-desc">命名规范：小写 + 连字符（如 <code>alipay-qr.png</code>），避免空格、下划线或中文。新增资源类型时，可新建子目录并同步更新说明。</p>
+    </section>
+
+    <section class="tools" id="images">
+      <h2>图片资源</h2>
+      <div class="tool-card">
+        <span class="tool-icon" aria-hidden="true">💳</span>
+        <div class="tool-info">
+          <h3 class="tool-name">支付宝收款码</h3>
+          <p class="tool-desc">打开支付宝「扫一扫」即可付款。</p>
+          <div class="qr-wrap">
+            <img class="qr-img" src="images/alipay-qr.png" alt="支付宝收款码">
+            <p class="qr-caption">文件：<code>images/alipay-qr.png</code></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2026 个人站 · 由 GitHub Pages 托管</p>
+    </div>
+  </footer>
+</body>
+</html>
