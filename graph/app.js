@@ -41,6 +41,7 @@ const elements = {
   randomNodeCount: document.querySelector("#randomNodeCount"),
   randomType: document.querySelector("#randomType"),
   random: document.querySelector("#randomBtn"),
+  duplicate: document.querySelector("#duplicateBtn"),
   canvasWrap: document.querySelector("#canvasWrap"),
   svg: document.querySelector("#graphCanvas"),
   viewport: document.querySelector("#viewport"),
@@ -124,6 +125,7 @@ const state = {
   tableSelectionDrag: null,
   drawNodeHold: null,
   lastDrawNodeTap: null,
+  lastTouchNodeTap: null,
   drawCanvasPending: null,
   canvasSelectionPending: null,
   canvasSelectionDrag: null,
@@ -1814,6 +1816,57 @@ function selectedNodeDragGroupFor(node) {
       originX: candidate.x,
       originY: candidate.y
     }));
+}
+
+function selectComponentOfNode(nodeId) {
+  const component = treeComponents(state.graph).find(comp => comp.ids.includes(nodeId));
+  if (!component) return;
+  state.boxSelectedNodeIds = new Set(component.ids);
+  state.selectedNode = null;
+  document.querySelectorAll(".graph-node.selected").forEach(el => el.classList.remove("selected"));
+  if (document.body.dataset.mobileStandalone === "true") {
+    state.mobileAnimatedSelectedNodeId = nodeId;
+  }
+  applyBoxSelectionClasses(state.boxSelectedNodeIds);
+  elements.selection.textContent = `已选中连通块 · ${component.ids.length} 个节点`;
+}
+
+function duplicateSelectedComponent() {
+  const selectedIds = state.boxSelectedNodeIds;
+  if (!state.graph || selectedIds.size === 0) {
+    elements.selection.textContent = "请先选中一个连通块（双击节点可选中整块）";
+    return;
+  }
+  pushUndoSnapshot();
+  const offset = 40;
+  const uidMap = new Map();
+  const stamp = Date.now().toString(36);
+  const newNodes = state.graph.nodes
+    .filter(node => selectedIds.has(node.id))
+    .map((node, index) => {
+      const newNode = {
+        id: `dup${stamp}_${index}`,
+        label: node.label,
+        x: node.x + offset,
+        y: node.y + offset
+      };
+      uidMap.set(node.id, newNode.id);
+      return newNode;
+    });
+  const newEdges = state.graph.edges
+    .filter(edge => selectedIds.has(edge.source) && selectedIds.has(edge.target))
+    .map(edge => ({
+      source: uidMap.get(edge.source),
+      target: uidMap.get(edge.target),
+      weight: edge.weight
+    }));
+  state.graph.nodes.push(...newNodes);
+  state.graph.edges.push(...newEdges);
+  state.boxSelectedNodeIds = new Set(newNodes.map(node => node.id));
+  state.selectedNode = null;
+  state.edgeStart = null;
+  commitGraphEdit(`已复制连通块 · ${newNodes.length} 个节点、${newEdges.length} 条边 · 已选中新副本`);
+  applyBoxSelectionClasses(state.boxSelectedNodeIds);
 }
 
 function activateCanvasSelection(pending) {
@@ -3952,7 +4005,18 @@ elements.canvasWrap.addEventListener("pointerdown", event => {
       : canvasObject.querySelector("table") ? "正在拖动表格" : "正在拖动文本";
   } else if (nodeElement) {
     clearTextObjectSelection();
-    state.draggingNode = state.graph.nodes.find(n => n.id === nodeElement.dataset.nodeId);
+    const nodeId = nodeElement.dataset.nodeId;
+    if (state.mode === "touch") {
+      const now = Date.now();
+      const previous = state.lastTouchNodeTap;
+      if (previous?.nodeId === nodeId && now - previous.time <= 500) {
+        state.lastTouchNodeTap = null;
+        selectComponentOfNode(nodeId);
+        return;
+      }
+      state.lastTouchNodeTap = { nodeId, time: now };
+    }
+    state.draggingNode = state.graph.nodes.find(n => n.id === nodeId);
     state.draggingNodeElement = nodeElement;
     state.pendingDragSnapshot = captureSnapshot();
     state.dragOrigin = { x: state.draggingNode.x, y: state.draggingNode.y };
@@ -4123,7 +4187,15 @@ function endPointer(event) {
     if (event?.type === "pointerup" && event.pointerId === pending.pointerId) {
       document.querySelectorAll(".graph-node.selected").forEach(element => element.classList.remove("selected"));
       state.selectedNode = null;
-      toggleNodeBoxSelection(pending.node.id);
+      const now = Date.now();
+      const previous = state.lastTouchNodeTap;
+      if (previous?.nodeId === pending.node.id && now - previous.time <= 500) {
+        state.lastTouchNodeTap = null;
+        selectComponentOfNode(pending.node.id);
+      } else {
+        state.lastTouchNodeTap = { nodeId: pending.node.id, time: now };
+        toggleNodeBoxSelection(pending.node.id);
+      }
     }
     return;
   }
@@ -4459,6 +4531,7 @@ elements.fit.addEventListener("click", () => fitGraph());
 elements.modeButtons.forEach(button => button.addEventListener("click", () => setMode(button.dataset.mode)));
 elements.organize.addEventListener("click", organizeLayout);
 elements.random.addEventListener("click", generateRandomGraph);
+elements.duplicate.addEventListener("click", duplicateSelectedComponent);
 elements.randomNodeCount.addEventListener("keydown", event => {
   if (event.key === "Enter") generateRandomGraph();
 });
