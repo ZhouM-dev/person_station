@@ -40,9 +40,9 @@
 
 ```
 assets/resources/
-├── index.html       ← 资源区入口页（渲染分类 + 展示图片）
+├── index.html       ← 资源区入口页（渲染分类 + 展示资源）
 ├── README.md        ← 本说明
-├── docs/            ← 文档类
-├── images/          ← 图片类（当前含 alipay-qr.png 支付宝收款码）
+├── docs/            ← 文档类（含 csp-exam-papers.html、csp-j1-prelim-notes.html、csp-s1-prelim-notes.html）
+├── images/          ← 图片类（含 alipay-qr.png 支付宝收款码）
 └── files/           ← 其他文件类
 ```
