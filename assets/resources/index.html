@@ -7,16 +7,75 @@
   <meta name="description" content="共享资源区：资料文件、文档与图片。">
   <link rel="stylesheet" href="../css/style.css">
   <style>
+    .resources-page .container { max-width: 1640px; }
+    .resources-page .hero { padding: 58px 0 26px; }
+    .resources-page .hero h1 {
+      border-bottom: 1px solid var(--border);
+      font-size: 2.6rem;
+      margin: 0;
+      padding-bottom: 22px;
+    }
+    .resources-page .hero-sub { display: none; }
     .res-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .92rem; }
     .res-table th, .res-table td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
     .res-table th { background: var(--code-bg); font-weight: 600; }
     .res-table code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: .9em; }
+    .doc-list {
+      border-collapse: collapse;
+      font-size: 1.08rem;
+      margin-top: 12px;
+      table-layout: fixed;
+      width: 100%;
+    }
+    .doc-list th {
+      border-bottom: 1px solid var(--border);
+      color: #285984;
+      font-size: 1.1rem;
+      font-weight: 500;
+      padding: 0 12px 10px;
+      text-align: left;
+    }
+    .doc-list th + th { border-left: 1px solid var(--border); }
+    .doc-list td {
+      color: #5b6470;
+      padding: 12px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .doc-list tr { border-bottom: 1px solid transparent; }
+    .doc-list tbody tr:hover { background: var(--code-bg); }
+    .doc-list tbody tr.is-selected {
+      background: #fff;
+      outline: 1px solid #111;
+      outline-offset: -1px;
+    }
+    .doc-name {
+      align-items: center;
+      color: var(--fg);
+      display: flex;
+      min-width: 0;
+    }
+    .doc-name-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .doc-open {
+      color: inherit;
+      text-decoration: none;
+    }
+    .doc-open:hover { color: var(--accent); text-decoration: underline; }
     .qr-wrap { margin: 16px 0 0; }
     .qr-img { display: block; width: 260px; max-width: 100%; border: 1px solid var(--border); border-radius: 12px; }
     .qr-caption { color: var(--muted); font-size: .85rem; margin-top: 8px; }
+    @media (max-width: 760px) {
+      .resources-page .hero h1 { font-size: 2.1rem; }
+      .doc-list { display: block; overflow-x: auto; }
+      .doc-list th, .doc-list td { padding: 10px 8px; }
+    }
   </style>
 </head>
-<body>
+<body class="resources-page">
   <header class="site-header">
     <div class="container">
       <a class="site-title" href="../../index.html">个人站</a>
@@ -52,38 +111,54 @@
 
     <section class="tools" id="docs">
       <h2>文档资源</h2>
-      <div class="tool-grid">
-        <div class="tool-card">
-          <span class="tool-icon" aria-hidden="true">📚</span>
-          <div class="tool-info">
-            <h3 class="tool-name">CSP 专题卷合集（考试版）· 客观题题库</h3>
-            <p class="tool-desc">CSP 专题卷合集，考试版客观题题库。</p>
-            <div class="tool-links">
-              <a class="tool-btn" href="docs/csp-exam-papers.html">打开</a>
-            </div>
-          </div>
-        </div>
-        <div class="tool-card">
-          <span class="tool-icon" aria-hidden="true">📘</span>
-          <div class="tool-info">
-            <h3 class="tool-name">CSP-J1 初赛综合整理</h3>
-            <p class="tool-desc">CSP-J1 初赛考点整理。</p>
-            <div class="tool-links">
-              <a class="tool-btn" href="docs/csp-j1-prelim-notes.html">打开</a>
-            </div>
-          </div>
-        </div>
-        <div class="tool-card">
-          <span class="tool-icon" aria-hidden="true">📗</span>
-          <div class="tool-info">
-            <h3 class="tool-name">CSP-S1 初赛整理</h3>
-            <p class="tool-desc">CSP-S1 初赛考点整理。</p>
-            <div class="tool-links">
-              <a class="tool-btn" href="docs/csp-s1-prelim-notes.html">打开</a>
-            </div>
-          </div>
-        </div>
-      </div>
+      <table class="doc-list" aria-label="文档资源详细信息">
+        <colgroup>
+          <col style="width: 42%;">
+          <col style="width: 22%;">
+          <col style="width: 22%;">
+          <col style="width: 14%;">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>名称</th>
+            <th>修改日期</th>
+            <th>类型</th>
+            <th>大小</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <a class="doc-open doc-name" href="docs/csp-exam-papers.html">
+                <span class="doc-name-text">CSP 专题卷合集（考试版）· 客观题题库</span>
+              </a>
+            </td>
+            <td>2026/8/19 9:10</td>
+            <td>Chrome HTML Document</td>
+            <td>7,193 KB</td>
+          </tr>
+          <tr class="is-selected">
+            <td>
+              <a class="doc-open doc-name" href="docs/csp-j1-prelim-notes.html">
+                <span class="doc-name-text">CSP-J1 初赛综合整理</span>
+              </a>
+            </td>
+            <td>2026/8/19 9:10</td>
+            <td>Chrome HTML Document</td>
+            <td>755 KB</td>
+          </tr>
+          <tr>
+            <td>
+              <a class="doc-open doc-name" href="docs/csp-s1-prelim-notes.html">
+                <span class="doc-name-text">CSP-S1 初赛整理</span>
+              </a>
+            </td>
+            <td>2026/8/19 9:10</td>
+            <td>Chrome HTML Document</td>
+            <td>218 KB</td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
     <section class="tools" id="images">

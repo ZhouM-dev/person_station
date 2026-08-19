@@ -158,10 +158,10 @@ const state = {
   panningPointerId: null,
   pointerStart: null,
   selectedNode: null,
+  nodeRelabelInput: null,
   editingEdgeIndex: null,
   editingNodeId: null,
   nextTreeKind: "multi",
-  sidebarFitTimer: null,
   restoringSettings: false,
   mobilePersistTimer: null,
   stylusPageDeleteActive: false,
@@ -956,6 +956,7 @@ function restoreSnapshot(snapshot, message) {
   state.pendingBrushSnapshot = null;
   state.pendingDragSnapshot = null;
   state.mobileAnimatedSelectedNodeId = null;
+  state.nodeRelabelInput = null;
   state.lastCommittedInput = snapshot.inputValue;
   elements.input.value = snapshot.inputValue;
   elements.directed.checked = snapshot.directed;
@@ -1000,6 +1001,7 @@ function draw(options = {}) {
     state.treeLayout = null;
     state.edgeStart = null;
     state.selectedNode = null;
+    state.nodeRelabelInput = null;
     state.boxSelectedNodeIds.clear();
     state.mobileAnimatedSelectedNodeId = null;
     state.scale = 1; state.offsetX = 0; state.offsetY = 0;
@@ -1040,6 +1042,7 @@ function clearGraph(recordHistory = false, deferIfBusy = false) {
   state.edgeStart = null;
   state.lastCommittedInput = "";
   state.selectedNode = null;
+  state.nodeRelabelInput = null;
   state.boxSelectedNodeIds.clear();
   state.mobileAnimatedSelectedNodeId = null;
   state.selectedEdges.clear();
@@ -1109,7 +1112,63 @@ function clearCanvasContent(snapshot = captureSnapshot()) {
   return true;
 }
 
+function clearSelectedLassoStrokes(snapshot = captureSnapshot()) {
+  const selectedStrokes = state.lassoSelectedStrokes.filter(stroke => stroke?.isConnected);
+  if (!selectedStrokes.length) {
+    state.lassoSelectedStrokes = [];
+    updateLassoSelectionOverlay();
+    return false;
+  }
+  cancelPointerInteraction();
+  pushUndoSnapshot(snapshot);
+  selectedStrokes.forEach(stroke => stroke.remove());
+  state.lassoSelectedStrokes = [];
+  invalidateDrawingMarkup();
+  updateLassoSelectionOverlay();
+  updateEmptyState();
+  elements.selection.textContent = `已清除圈选的 ${selectedStrokes.length} 笔笔迹 · 可撤销`;
+  return true;
+}
+
+function clearSelectedNodes(snapshot = captureSnapshot()) {
+  if (!state.graph || !state.boxSelectedNodeIds.size) return false;
+  const selectedIds = new Set(state.graph.nodes
+    .filter(node => state.boxSelectedNodeIds.has(node.id))
+    .map(node => node.id));
+  if (!selectedIds.size) {
+    clearBoxSelection();
+    return false;
+  }
+  cancelPointerInteraction();
+  pushUndoSnapshot(snapshot);
+  state.graph.nodes = state.graph.nodes.filter(node => !selectedIds.has(node.id));
+  state.graph.edges = state.graph.edges.filter(edge => !selectedIds.has(edge.source) && !selectedIds.has(edge.target));
+  state.boxSelectedNodeIds.clear();
+  state.mobileAnimatedSelectedNodeId = null;
+  state.selectedNode = null;
+  state.nodeRelabelInput = null;
+  state.edgeStart = null;
+  state.selectedEdges.clear();
+  commitGraphEdit(`已删除多选的 ${selectedIds.size} 个节点`);
+  applyBoxSelectionClasses(state.boxSelectedNodeIds);
+  return true;
+}
+
+function clearActiveSelection(snapshot = captureSnapshot()) {
+  if (clearSelectedLassoStrokes(snapshot)) return true;
+  if (clearSelectedNodes(snapshot)) return true;
+  return false;
+}
+
 function requestClearAllContent() {
+  const selectionSnapshot = captureSnapshot();
+  if (clearActiveSelection(selectionSnapshot)) {
+    if (state.clearClickTimer !== null) clearTimeout(state.clearClickTimer);
+    state.clearClickTimer = null;
+    state.clearClickSnapshot = null;
+    state.clearClickHistoryRecorded = false;
+    return;
+  }
   if (state.clearClickTimer !== null) {
     clearTimeout(state.clearClickTimer);
     const snapshot = state.clearClickSnapshot;
@@ -1120,7 +1179,7 @@ function requestClearAllContent() {
     clearAllContent(snapshot, historyAlreadyRecorded);
     return;
   }
-  const snapshot = captureSnapshot();
+  const snapshot = selectionSnapshot;
   state.clearClickSnapshot = snapshot;
   state.clearClickHistoryRecorded = clearCanvasContent(snapshot);
   state.clearClickTimer = window.setTimeout(() => {
@@ -1676,6 +1735,7 @@ function setMode(mode) {
   state.mode = mode;
   state.edgeStart = null;
   state.lastDrawNodeTap = null;
+  state.nodeRelabelInput = null;
   const preserveMobileSelection = document.body.dataset.mobileStandalone === "true";
   if (mode !== "touch" && !preserveMobileSelection) {
     clearBoxSelection();
@@ -1779,6 +1839,7 @@ function applyBoxSelectionClasses(selectedIds) {
 function clearBoxSelection() {
   state.boxSelectedNodeIds.clear();
   state.mobileAnimatedSelectedNodeId = null;
+  state.nodeRelabelInput = null;
   applyBoxSelectionClasses(state.boxSelectedNodeIds);
 }
 
@@ -1858,6 +1919,7 @@ function selectComponentOfNode(nodeId) {
   if (!component) return;
   state.boxSelectedNodeIds = new Set(component.ids);
   state.selectedNode = null;
+  state.nodeRelabelInput = null;
   document.querySelectorAll(".graph-node.selected").forEach(el => el.classList.remove("selected"));
   if (document.body.dataset.mobileStandalone === "true") {
     state.mobileAnimatedSelectedNodeId = nodeId;
@@ -1900,6 +1962,7 @@ function duplicateSelectedComponent() {
   state.graph.edges.push(...newEdges);
   state.boxSelectedNodeIds = new Set(newNodes.map(node => node.id));
   state.selectedNode = null;
+  state.nodeRelabelInput = null;
   state.edgeStart = null;
   commitGraphEdit(`已复制连通块 · ${newNodes.length} 个节点、${newEdges.length} 条边 · 已选中新副本`);
   applyBoxSelectionClasses(state.boxSelectedNodeIds);
@@ -3247,6 +3310,7 @@ function openNodeIdEditor(nodeId) {
   const node = state.graph?.nodes.find(candidate => candidate.id === nodeId);
   if (!node) return;
   state.edgeStart = null;
+  state.nodeRelabelInput = null;
   state.editingNodeId = nodeId;
   document.querySelectorAll(".graph-node.selected").forEach(element => element.classList.remove("selected"));
   elements.nodeIdDescription.textContent = `当前编号：${node.label}`;
@@ -3279,12 +3343,47 @@ function alphabeticNodeIndex(label) {
     value * 26 + character.charCodeAt(0) - 64, 0) - 1;
 }
 
-function applyNodeIdMap(labelMap) {
+function graphLabelMode() {
+  const labels = state.graph?.nodes.map(node => node.label) ?? [];
+  if (!labels.length) return null;
+  if (labels.every(label => /^[A-Z]+$/.test(label))) return "letters";
+  if (labels.every(isIntegerToken)) return "numbers";
+  return null;
+}
+
+function applyNodeRelabels(uidLabelMap) {
+  const previousLabels = new Map(state.graph.nodes.map(node => [node.id, node.label]));
   state.graph.nodes.forEach(node => {
-    node.label = labelMap.get(node.label) ?? node.label;
+    node.label = uidLabelMap.get(node.id) ?? node.label;
   });
   const currentRoot = elements.rootInput.value.trim();
-  if (labelMap.has(currentRoot)) elements.rootInput.value = labelMap.get(currentRoot);
+  if (!currentRoot) return;
+  const rootStillExists = state.graph.nodes.some(node =>
+    node.label === currentRoot && previousLabels.get(node.id) === currentRoot);
+  if (rootStillExists) return;
+  const relabeledRoot = state.graph.nodes.find(node => previousLabels.get(node.id) === currentRoot);
+  if (relabeledRoot) elements.rootInput.value = relabeledRoot.label;
+}
+
+function relabelGraphSequentially(anchorNode, mode) {
+  const component = treeComponents(state.graph).find(item => item.ids.includes(anchorNode.id));
+  const scopedNodes = component?.nodes ?? [anchorNode];
+  const targetLabel = mode === "letters" ? "A" : "1";
+  const distinctLabels = [...new Set(scopedNodes.map(node => node.label))]
+    .filter(label => label !== anchorNode.label)
+    .sort(compareNodeIds);
+  const labelMap = new Map([[anchorNode.label, targetLabel]]);
+  distinctLabels.forEach((label, index) => {
+    labelMap.set(label, mode === "letters"
+      ? alphabeticNodeId(index + 1)
+      : String(index + 2));
+  });
+  const uidLabelMap = new Map();
+  scopedNodes.forEach(node => {
+    uidLabelMap.set(node.id, labelMap.get(node.label));
+  });
+  applyNodeRelabels(uidLabelMap);
+  return scopedNodes.length;
 }
 
 function saveEditedNodeId(event) {
@@ -3298,6 +3397,7 @@ function saveEditedNodeId(event) {
   const nodeLabel = node.label;
   const nextId = elements.nodeIdInput.value.trim();
   const renameAllToLetters = nodeLabel === "1" && nextId === "A";
+  const renameAllToNumbers = nodeLabel === "A" && nextId === "1";
   let validationMessage = "";
   if (!nextId) validationMessage = "节点编号不能为空";
   else if (/[\s,]/.test(nextId)) validationMessage = "节点编号不能包含空格或逗号";
@@ -3333,17 +3433,13 @@ function saveEditedNodeId(event) {
   const messages = [];
   if (idChanged) {
     if (renameAllToLetters) {
-      const orderedOthers = state.graph.nodes
-        .filter(candidate => candidate !== node)
-        .sort((first, second) => compareNodeIds(first.label, second.label));
-      const labelMap = new Map([[nodeLabel, "A"]]);
-      orderedOthers.forEach((candidate, index) => {
-        labelMap.set(candidate.label, alphabeticNodeId(index + 1));
-      });
-      applyNodeIdMap(labelMap);
-      messages.push(`已将 ${state.graph.nodes.length} 个节点依次重编号为字母`);
+      const relabeledCount = relabelGraphSequentially(node, "letters");
+      messages.push(`已将当前连通块 ${relabeledCount} 个节点依次重编号为字母`);
+    } else if (renameAllToNumbers) {
+      const relabeledCount = relabelGraphSequentially(node, "numbers");
+      messages.push(`已将当前连通块 ${relabeledCount} 个节点依次重编号为数字`);
     } else {
-      applyNodeIdMap(new Map([[nodeLabel, nextId]]));
+      applyNodeRelabels(new Map([[node.id, nextId]]));
       messages.push(`已将节点 ${nodeLabel} 的编号修改为 ${nextId}`);
     }
   }
@@ -3356,6 +3452,49 @@ function saveEditedNodeId(event) {
   elements.nodeIdDialog.close();
   commitGraphEdit(messages.join(" · "));
   saveSettings();
+}
+
+function relabelSelectedNodeFromInput(rawInput) {
+  if (state.mode !== "touch" || !state.graph || state.selectedNode === null) return false;
+  if (state.boxSelectedNodeIds.size > 0 || state.edgeStart !== null) return false;
+  const node = state.graph.nodes.find(candidate => candidate.id === state.selectedNode);
+  if (!node) return false;
+  const input = rawInput.length === 1 ? rawInput.toUpperCase() : "";
+  const isLetterInput = /^[A-Z]$/.test(input);
+  const isNumberInput = /^[0-9]$/.test(input);
+  if (!isLetterInput && !isNumberInput) return false;
+
+  if (state.nodeRelabelInput?.nodeId !== node.id) state.nodeRelabelInput = null;
+  const mode = graphLabelMode();
+  const hasInputBuffer = Boolean(state.nodeRelabelInput?.value);
+  const convertToLetters = !hasInputBuffer && node.label === "1" && input === "A";
+  const convertToNumbers = !hasInputBuffer && node.label === "A" && input === "1";
+  const allowed = convertToLetters || convertToNumbers
+    || (mode === "letters" && isLetterInput)
+    || (mode === "numbers" && isNumberInput)
+    || (!mode && ((/^[A-Z]+$/.test(node.label) && isLetterInput) || (isIntegerToken(node.label) && isNumberInput)));
+  if (!allowed) return false;
+
+  pushUndoSnapshot();
+  if (convertToLetters) {
+    state.nodeRelabelInput = null;
+    const relabeledCount = relabelGraphSequentially(node, "letters");
+    commitGraphEdit(`已将当前连通块 ${relabeledCount} 个节点依次重编号为字母`);
+  } else if (convertToNumbers) {
+    state.nodeRelabelInput = null;
+    const relabeledCount = relabelGraphSequentially(node, "numbers");
+    commitGraphEdit(`已将当前连通块 ${relabeledCount} 个节点依次重编号为数字`);
+  } else {
+    const previousLabel = node.label;
+    const nextLabel = `${state.nodeRelabelInput?.value ?? ""}${input}`;
+    state.nodeRelabelInput = { nodeId: node.id, value: nextLabel };
+    applyNodeRelabels(new Map([[node.id, nextLabel]]));
+    commitGraphEdit(`已将节点 ${previousLabel} 的编号修改为 ${nextLabel}`);
+  }
+  state.selectedNode = node.id;
+  elements.nodes.querySelector(`[data-node-id="${CSS.escape(node.id)}"]`)?.classList.add("selected");
+  saveSettings();
+  return true;
 }
 
 function beginDeleteGesture(event, target) {
@@ -3731,17 +3870,27 @@ function randomInteger(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function preserveViewportAroundLayoutChange(changeLayout) {
+  const before = elements.canvasWrap.getBoundingClientRect();
+  changeLayout();
+  const after = elements.canvasWrap.getBoundingClientRect();
+  const deltaX = before.left - after.left;
+  const deltaY = before.top - after.top;
+  if (deltaX || deltaY) {
+    state.offsetX += deltaX;
+    state.offsetY += deltaY;
+    updateTransform();
+  }
+}
+
 function toggleSidebar() {
-  const collapsed = elements.appShell.classList.toggle("sidebar-collapsed");
+  let collapsed = false;
+  preserveViewportAroundLayoutChange(() => {
+    collapsed = elements.appShell.classList.toggle("sidebar-collapsed");
+  });
   elements.sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
   elements.sidebarToggle.setAttribute("aria-label", collapsed ? "展开左侧栏" : "收起左侧栏");
   elements.sidebarToggle.setAttribute("title", collapsed ? "展开左侧栏" : "收起左侧栏");
-  // 等宽度过渡完成后重新居中，避免图形停留在旧画布中心。
-  clearTimeout(state.sidebarFitTimer);
-  state.sidebarFitTimer = window.setTimeout(() => {
-    state.sidebarFitTimer = null;
-    if (state.graph?.nodes.length) fitGraph(1);
-  }, 260);
   saveSettings();
 }
 
@@ -4051,6 +4200,7 @@ elements.canvasWrap.addEventListener("pointerdown", event => {
     elements.canvasWrap.setPointerCapture(event.pointerId);
     document.querySelectorAll(".graph-node.selected").forEach(element => element.classList.remove("selected"));
     state.selectedNode = null;
+    state.nodeRelabelInput = null;
     toggleNodeBoxSelection(nodeElement.dataset.nodeId);
     return;
   }
@@ -4098,6 +4248,7 @@ elements.canvasWrap.addEventListener("pointerdown", event => {
     document.querySelectorAll(".graph-node.selected").forEach(el => el.classList.remove("selected"));
     nodeElement.classList.add("selected");
     state.selectedNode = state.draggingNode.id;
+    state.nodeRelabelInput = null;
     elements.selection.textContent = `已选择节点 ${nodeLabelOf(state.selectedNode)}`;
   } else {
     clearTextObjectSelection();
@@ -4261,6 +4412,7 @@ function endPointer(event) {
     if (event?.type === "pointerup" && event.pointerId === pending.pointerId) {
       document.querySelectorAll(".graph-node.selected").forEach(element => element.classList.remove("selected"));
       state.selectedNode = null;
+      state.nodeRelabelInput = null;
       const now = Date.now();
       const previous = state.lastTouchNodeTap;
       if (previous?.nodeId === pending.node.id && now - previous.time <= 500) {
@@ -4678,7 +4830,18 @@ document.addEventListener("keydown", event => {
     draw();
     return;
   }
+  if ((event.key === "Delete" || event.key === "Del") && !editingText
+    && !elements.edgeWeightDialog.open && !elements.nodeIdDialog.open) {
+    event.preventDefault();
+    requestClearAllContent();
+    return;
+  }
   if (event.ctrlKey || event.metaKey || event.altKey || isTypingTarget(event.target)) return;
+  if (!elements.edgeWeightDialog.open && !elements.nodeIdDialog.open
+    && relabelSelectedNodeFromInput(event.key)) {
+    event.preventDefault();
+    return;
+  }
   const key = event.key.toLowerCase();
   const modeShortcuts = { v: "touch", d: "draw", x: "delete", p: "canvas", q: "lasso" };
   if (modeShortcuts[key]) {

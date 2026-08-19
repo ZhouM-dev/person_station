@@ -38,7 +38,6 @@ button { color: inherit; }
   height: 100vh;
   overflow: hidden;
   background: #080d18;
-  transition: grid-template-columns .24s ease;
 }
 .app-shell.sidebar-collapsed { grid-template-columns: 50px minmax(0, 1fr); }
 
