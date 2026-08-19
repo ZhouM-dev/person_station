@@ -117,13 +117,19 @@ article img { max-width: 100%; border-radius: 6px; }
 .tool-info { display: flex; flex-direction: column; }
 .tool-name { font-size: 1.05rem; font-weight: 700; margin: 0 0 4px; }
 .tool-desc { color: var(--muted); font-size: 0.9rem; margin: 0 0 12px; line-height: 1.5; }
-.tool-links { display: flex; gap: 8px; }
+.tool-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .tool-btn {
   display: inline-block;
+  flex-shrink: 0;
   padding: 6px 14px;
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 0.85rem;
+  white-space: nowrap;
   text-decoration: none;
   color: var(--fg);
   transition: border-color .15s, color .15s;
