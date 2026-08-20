@@ -23,6 +23,15 @@ select,input[type=search]{height:40px;border:1px solid #cbd3da;background:#fff;b
 .subquestion{padding:14px 0;border-top:1px solid #e8ecef} .subquestion:first-child{border-top:0;padding-top:0} .question-label{font-weight:750;margin-bottom:8px} .options{display:grid;gap:8px} .option{display:flex;text-align:left;width:100%;border:1px solid #ccd4da;background:#fff;border-radius:6px;padding:9px 11px;gap:9px;color:var(--text)} .option:hover{border-color:#87afb3} .option.selected{border-color:var(--primary);background:var(--primary-soft)} .option.correct{border-color:#63a77c;background:#eaf6ee} .option.wrong{border-color:#d47b76;background:#fcebea} .option-key{font-weight:800;min-width:18px}
 .feedback{min-height:24px;margin-top:8px;font-size:14px;font-weight:650} .feedback.good{color:var(--good)} .feedback.bad{color:var(--bad)} .empty{padding:36px;text-align:center;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:8px}
 @media(max-width:720px){.topbar{align-items:flex-start;flex-direction:column;gap:8px;padding:12px 15px} .wrap{padding:18px 12px 36px} .page-head{align-items:flex-start;flex-direction:column} .syllabus-blocks{grid-template-columns:1fr} .toolbar>*{width:100%} select,input[type=search]{min-width:0} .card-head{align-items:flex-start}}
+/* ===== 拖动浮起：组合题小题 ===== */
+.subquestion{position:relative}
+.subquestion-handle{display:inline-flex;align-items:center;justify-content:center;height:20px;padding:0 8px;border-radius:999px;background:var(--primary);color:#fff;font-size:11px;line-height:1;cursor:grab;white-space:nowrap;vertical-align:middle;margin-right:6px;box-shadow:0 2px 8px rgba(0,0,0,.28);user-select:none;-webkit-user-select:none;opacity:.85;transition:opacity .15s}
+.subquestion-handle:hover{opacity:1}
+.subquestion-handle:active{cursor:grabbing}
+.subquestion.floating{position:fixed!important;z-index:9999!important;margin:0!important;padding:14px 14px 14px 16px!important;border:1px solid var(--line)!important;border-left:4px solid var(--primary)!important;border-radius:12px!important;background:#fff!important;box-shadow:0 18px 50px rgba(0,0,0,.3)!important;max-height:72vh;overflow:auto;cursor:grab;user-select:none;-webkit-user-select:none}
+.subquestion.floating:active{cursor:grabbing}
+.subquestion.floating .option{cursor:pointer}
+.subquestion-placeholder{border:1px dashed var(--line);border-radius:8px;margin-top:14px;background:var(--bg);opacity:.55}
 </style>
 </head>
 <body>
@@ -232,7 +241,92 @@ function textContent(html){const box=document.createElement('div');box.innerHTML
 function choiceHtml(record,q){const opts=q.options.length?q.options:[{key:'-',html:'该题选项尚未结构化'}];return `<div class="subquestion" data-q="${q.number}"><div class="question-label">第 ${q.displayNumber} 题</div><div class="markdown-body">${q.promptHtml}</div><div class="options">${opts.map(o=>`<button class="option" data-key="${o.key}"><span class="option-key">${o.key}</span><span>${o.html}</span></button>`).join('')}</div><div class="feedback"></div></div>`;}
 function cardHtml(record){return `<article class="card" data-id="${record.id}"><div class="card-head"><div class="card-title">${record.title}</div><span class="type-badge">${record.type}</span></div><div class="card-body">${record.contextHtml?`<div class="program-context markdown-body">${record.contextHtml}</div>`:''}${record.questions.map(q=>choiceHtml(record,q)).join('')}</div></article>`;}
 function bindCard(card,record){card.querySelectorAll('.option').forEach(option=>option.addEventListener('click',()=>{const group=option.closest('.subquestion'),q=record.questions.find(item=>String(item.number)===group.dataset.q),feedback=group.querySelector('.feedback');group.querySelectorAll('.option').forEach(x=>{x.classList.remove('selected','correct','wrong');if(q.answer!=='*'&&x.dataset.key===q.answer)x.classList.add('correct');});option.classList.add('selected');if(q.answer==='*'){feedback.textContent='该题答案待核对';feedback.className='feedback bad';}else if(option.dataset.key===q.answer){feedback.textContent='回答正确';feedback.className='feedback good';}else{option.classList.add('wrong');feedback.textContent=`回答错误，正确答案：${q.answer}`;feedback.className='feedback bad';}}));}
-function renderPractice(){const year=yearFilter.value,type=typeFilter.value,term=keywordFilter.value.trim().toLowerCase();const list=RECORDS.filter(r=>(year==='all'||r.year===year)&&(type==='all'||r.type===type)&&(!term||textContent(r.title+r.contextHtml+r.questions.map(q=>q.promptHtml).join('')).includes(term)));practiceCount.textContent=`共 ${list.length} 组题目`;practiceList.innerHTML=list.length?list.map(cardHtml).join(''):'<div class="empty">没有符合条件的题目</div>';list.forEach(record=>bindCard(practiceList.querySelector(`[data-id="${record.id}"]`),record));}
+function renderPractice(){const year=yearFilter.value,type=typeFilter.value,term=keywordFilter.value.trim().toLowerCase();const list=RECORDS.filter(r=>(year==='all'||r.year===year)&&(type==='all'||r.type===type)&&(!term||textContent(r.title+r.contextHtml+r.questions.map(q=>q.promptHtml).join('')).includes(term)));practiceCount.textContent=`共 ${list.length} 组题目`;practiceList.innerHTML=list.length?list.map(cardHtml).join(''):'<div class="empty">没有符合条件的题目</div>';list.forEach(record=>bindCard(practiceList.querySelector(`[data-id="${record.id}"]`),record));initFloat();}
 [yearFilter,typeFilter,keywordFilter].forEach(x=>x.addEventListener(x.tagName==='INPUT'?'input':'change',renderPractice));document.getElementById('resetFilters').addEventListener('click',()=>{yearFilter.value='all';typeFilter.value='all';keywordFilter.value='';renderPractice();});
+
+// ===== 拖动浮起：组合题小题 =====
+function initFloat(){
+  document.querySelectorAll('.subquestion').forEach(function(subQ){
+    if (subQ.querySelector('.subquestion-handle')) return;
+    var handle = document.createElement('span');
+    handle.className = 'subquestion-handle';
+    handle.textContent = '⣿';
+    handle.title = '按住拖动浮起';
+    var label = subQ.querySelector('.question-label');
+    if (label) label.insertBefore(handle, label.firstChild);
+    else subQ.insertBefore(handle, subQ.firstChild);
+
+    var floated = false, placeholder = null;
+    var dragging = false, moved = false;
+    var offX = 0, offY = 0, startX = 0, startY = 0;
+    function floatIt(cx, cy){
+      floated = true;
+      placeholder = document.createElement('div');
+      placeholder.className = 'subquestion-placeholder';
+      placeholder.style.height = subQ.offsetHeight + 'px';
+      subQ.parentNode.insertBefore(placeholder, subQ);
+      subQ.classList.add('floating');
+      var w = Math.min(400, window.innerWidth - 24);
+      subQ.style.width = w + 'px';
+      subQ.style.left = Math.max(8, Math.min(cx - 20, window.innerWidth - w - 8)) + 'px';
+      subQ.style.top = Math.max(8, cy - 14) + 'px';
+      offX = 20; offY = 14;
+      handle.title = '按住窗口空白拖动 · 双击空白还原';
+    }
+    function restore(){
+      floated = false;
+      subQ.classList.remove('floating');
+      subQ.style.width = ''; subQ.style.left = ''; subQ.style.top = '';
+      if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+      placeholder = null;
+      handle.title = '按住拖动浮起';
+    }
+    function onDown(e){
+      if (e.target.closest('.option')) return;
+      if (!floated && !handle.contains(e.target)) return;
+      dragging = true; moved = false;
+      startX = e.clientX; startY = e.clientY;
+      var rect = subQ.getBoundingClientRect();
+      if (floated){ offX = e.clientX - rect.left; offY = e.clientY - rect.top; }
+    }
+    function onMove(e){
+      if (!dragging) return;
+      var dx = e.clientX - startX, dy = e.clientY - startY;
+      if (!floated){
+        if (Math.abs(dx) > 6 || Math.abs(dy) > 6){ floatIt(e.clientX, e.clientY); moved = true; }
+        return;
+      }
+      if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+      moved = true;
+      var w = subQ.offsetWidth;
+      var x = Math.max(8, Math.min(e.clientX - offX, window.innerWidth - w - 8));
+      var y = Math.max(8, Math.min(e.clientY - offY, window.innerHeight - 40));
+      subQ.style.left = x + 'px';
+      subQ.style.top = y + 'px';
+    }
+    function onUp(){
+      dragging = false;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+    }
+    handle.addEventListener('pointerdown', function(e){
+      e.stopPropagation();
+      onDown(e);
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+    });
+    subQ.addEventListener('pointerdown', function(e){
+      if (!floated) return;
+      onDown(e);
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+    });
+    subQ.addEventListener('dblclick', function(e){
+      if (!floated) return;
+      if (e.target.closest('.option') || e.target.closest('.markdown-body')) return;
+      restore();
+    });
+  });
+}
 </script>
 </body></html>
