@@ -5573,7 +5573,9 @@ function beginPinchZoom(event) {
     startDistance: metrics.distance,
     startScale: state.scale,
     graphX: (metrics.centerX - rect.left - state.offsetX) / state.scale,
-    graphY: (metrics.centerY - rect.top - state.offsetY) / state.scale
+    graphY: (metrics.centerY - rect.top - state.offsetY) / state.scale,
+    startTime: Date.now(),
+    maxDistanceDelta: 0
   };
   elements.canvasWrap.classList.add("pinching");
   elements.selection.textContent = "双指缩放画布";
@@ -5583,6 +5585,8 @@ function updatePinchZoom(event) {
   const pinch = state.pinchGesture;
   const metrics = touchPairMetrics(event.touches);
   if (!pinch || !metrics) return;
+  const distanceDelta = Math.abs(metrics.distance - pinch.startDistance);
+  if (distanceDelta > pinch.maxDistanceDelta) pinch.maxDistanceDelta = distanceDelta;
   const rect = elements.svg.getBoundingClientRect();
   const nextScale = Math.max(.25, Math.min(3,
     pinch.startScale * metrics.distance / pinch.startDistance));
@@ -5594,7 +5598,19 @@ function updatePinchZoom(event) {
 
 function finishPinchZoom(event) {
   if (event.touches?.length >= 2) return;
-  if (state.pinchGesture) elements.selection.textContent = `画布缩放至 ${Math.round(state.scale * 100)}%`;
+  const pinch = state.pinchGesture;
+  if (pinch) {
+    const wasTwoFingerTap = pinch.maxDistanceDelta < 20 && Date.now() - pinch.startTime < 350;
+    if (wasTwoFingerTap) {
+      if (state.undoStack.length === 0) {
+        elements.selection.textContent = "没有可撤销的操作";
+      } else {
+        undoLastOperation();
+      }
+    } else {
+      elements.selection.textContent = `画布缩放至 ${Math.round(state.scale * 100)}%`;
+    }
+  }
   state.pinchGesture = null;
   elements.canvasWrap.classList.remove("pinching");
 }

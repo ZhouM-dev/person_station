@@ -288,8 +288,8 @@ html{scroll-behavior:smooth}
 <script>
 // ===== 拖动浮起：小题目（阅读程序/完善程序的每个小题） =====
 function initFloat(){
-  document.querySelectorAll('.practice-card, .mock-card').forEach(function(card){
-    if (!card.querySelector('.inline-answer-line')) return;
+  document.querySelectorAll('.practice-card').forEach(function(card){
+    if (!card.querySelector('.practice-task-body')) return;
     Array.prototype.slice.call(card.querySelectorAll('.inline-answer-line')).forEach(function(line){
       if (line.querySelector('.subitem-handle')) return;
       var qno = line.dataset.question;
