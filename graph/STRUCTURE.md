@@ -20,6 +20,7 @@
   - `nodeLabelOf(uid)` 取显示编号；`compareNodeUids(a,b)` 按 label 排序 uid。
 - **近期行为约定**：
   - 点权：节点可选数值属性，输入格式 `label:weight`（单列冒号）或首行 `n m` + 第二行 n 个点权值（点权行，`parseGraph` 的 `nodeWeightValues`）+ 第三行起边；「显示点权」开关 `#nodeWeightInput`（默认开）控制节点下方 `.node-weight` 小字；导出时全部节点带点权则输出点权行格式（`updateDataInput` 的 `allWeighted`/`weightLine`）；双击节点（绘制模式）打开「编辑节点」对话框 `#nodeIdDialog` 可同时改编号与点权（`#nodeWeightEdit`）；随机生成与绘制建节点自动带点权（1–10，绘制按「图内已有带点权节点则新节点带权」规则）。
+  - mobile 独有：双指同时点击（快速且无缩放移动）触发撤销（`finishPinchZoom` 里 `wasTwoFingerTap` 判断，仅 mobile.html，app.js 不同步）。
   - 「返回主页」按钮：侧栏底部（`.home-link`），带文字，指向 `https://zhoum-dev.github.io/person_station/`。
   - 侧栏收起：`toggleSidebar` 通过 `preserveViewportAroundLayoutChange` 补偿画布左上角变化，不再自动 `fitGraph`；`.app-shell` 无列宽过渡，避免视口缩放和抖动。
   - 「清除」按钮：任何模式下始终显示（`.brush-tools` 不再整体隐藏，只隐藏 select/.color-palette）；若有圈选笔迹则只清圈选笔迹，若有多选节点则删多选节点，二者同时存在时圈选笔迹优先；无选择时保留原单击清画布、双击清全部。桌面版 `Del` 等价点击清除。
