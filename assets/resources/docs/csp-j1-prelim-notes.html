@@ -48,12 +48,25 @@
   @media(max-width:880px){h1{font-size:25px}.practice-controls{grid-template-columns:1fr}.practice-controls label.wide{grid-column:auto}}
 
 html{scroll-behavior:smooth}
+.font-scale-control{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;color:var(--muted);font-size:13px}
+.font-scale-control input{width:180px;accent-color:#111827}
+.font-scale-value{min-width:42px;color:var(--ink);font-weight:800}
+:root{--note-font-scale:1}
+body{font-size:calc(15px * var(--note-font-scale))}
+h1{font-size:calc(30px * var(--note-font-scale))}
+h2{font-size:calc(21px * var(--note-font-scale))}
+h3{font-size:calc(17px * var(--note-font-scale))}
+table{font-size:calc(14px * var(--note-font-scale))}
+.metric span,.practice-pill,.level-badge{font-size:calc(12px * var(--note-font-scale))}
+.practice-controls label,.subtitle,.muted,.note{font-size:calc(13px * var(--note-font-scale))}
+.practice-text{font-size:calc(13px * var(--note-font-scale))}
+@media(max-width:880px){h1{font-size:calc(25px * var(--note-font-scale))}.font-scale-control input{width:160px}}
 /* ===== 拖动浮起：小题目（阅读程序/完善程序的每个小题） ===== */
-.subitem-handle{display:inline-flex;align-items:center;justify-content:center;height:18px;padding:0 6px;border-radius:999px;background:var(--blue);color:#fff;font-size:11px;line-height:1;cursor:grab;white-space:nowrap;vertical-align:middle;margin-right:6px;box-shadow:0 2px 8px rgba(0,0,0,.28);user-select:none;-webkit-user-select:none;opacity:.85;transition:opacity .15s}
+.subitem-handle{display:inline-flex;align-items:center;justify-content:center;height:18px;padding:0 6px;border-radius:999px;background:var(--blue);color:#fff;font-size:11px;line-height:1;cursor:grab;white-space:nowrap;vertical-align:middle;margin-right:6px;box-shadow:0 2px 8px rgba(0,0,0,.28);user-select:none;-webkit-user-select:none;touch-action:none;opacity:.85;transition:opacity .15s}
 .subitem-handle:hover{opacity:1}
 .subitem-handle:active{cursor:grabbing}
 .subitem-float{display:block}
-.subitem-float.floating{position:fixed;z-index:9999;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:12px;background:#fff;box-shadow:0 18px 50px rgba(0,0,0,.3);max-height:72vh;overflow:auto;cursor:grab;user-select:none;-webkit-user-select:none}
+.subitem-float.floating{position:fixed;z-index:9999;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:12px;background:#fff;box-shadow:0 18px 50px rgba(0,0,0,.3);max-height:72vh;overflow:auto;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}
 .subitem-float.floating:active{cursor:grabbing}
 .subitem-placeholder{border:1px dashed var(--line);border-radius:8px;background:var(--bg);opacity:.55}
 </style>
@@ -64,6 +77,7 @@ html{scroll-behavior:smooth}
     <h1>CSP-J1 初赛综合整理</h1>
     <p class="subtitle">整合考点分析、考纲查看、真题练习与模拟练习，一个 HTML 文件内完成浏览、分析和练习。</p>
     <nav><button class="page-tab active" type="button" data-page="analysis">考点分析</button><button class="page-tab" type="button" data-page="syllabus">考纲查看</button><button class="page-tab" type="button" data-page="practice">真题练习</button><button class="page-tab" type="button" data-page="mock">模拟练习</button></nav>
+    <label class="font-scale-control">字号 <input id="fontScale" type="range" min="90" max="150" step="5" value="100"><span class="font-scale-value" id="fontScaleValue">100%</span></label>
   </div>
 </header>
 <main class="wrap">
@@ -307,7 +321,7 @@ function initFloat(){
       (host || line).insertBefore(handle, (host || line).firstChild);
 
       var floated = false, placeholder = null, wrapper = null;
-      var dragging = false;
+      var dragging = false, activePointerId = null;
       var offX = 0, offY = 0, startX = 0, startY = 0;
       var saved = [];
 
@@ -347,8 +361,9 @@ function initFloat(){
         wrapper.addEventListener('pointerdown', function(e){
           if (e.target.closest('.inline-choice, button, input, select')) return;
           onDown(e);
-          document.addEventListener('pointermove', onMove);
-          document.addEventListener('pointerup', onUp);
+          document.addEventListener('pointermove', onMove, {passive:false});
+          document.addEventListener('pointerup', onUp, {passive:false});
+          document.addEventListener('pointercancel', onUp, {passive:false});
         });
         wrapper.addEventListener('dblclick', function(e){
           if (e.target.closest('.inline-choice, button')) return;
@@ -372,7 +387,12 @@ function initFloat(){
       function onDown(e){
         if (e.target.closest('.inline-choice, button, input, select')) return;
         if (!floated && !handle.contains(e.target)) return;
+        e.preventDefault();
+        if (e.currentTarget && e.currentTarget.setPointerCapture) {
+          try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+        }
         dragging = true;
+        activePointerId = e.pointerId;
         startX = e.clientX; startY = e.clientY;
         if (floated && wrapper) {
           var rect = wrapper.getBoundingClientRect();
@@ -381,6 +401,8 @@ function initFloat(){
       }
       function onMove(e){
         if (!dragging) return;
+        if (activePointerId !== null && e.pointerId !== activePointerId) return;
+        e.preventDefault();
         var dx = e.clientX - startX, dy = e.clientY - startY;
         if (!floated){
           if (Math.abs(dx) > 6 || Math.abs(dy) > 6){ floatIt(e.clientX, e.clientY); }
@@ -393,16 +415,24 @@ function initFloat(){
         wrapper.style.left = x + 'px';
         wrapper.style.top = y + 'px';
       }
-      function onUp(){
+      function onUp(e){
+        if (activePointerId !== null && e.pointerId !== activePointerId) return;
+        if (e && e.preventDefault) e.preventDefault();
+        if (e && e.currentTarget && e.currentTarget.releasePointerCapture) {
+          try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+        }
         dragging = false;
+        activePointerId = null;
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onUp);
       }
       handle.addEventListener('pointerdown', function(e){
         e.stopPropagation();
         onDown(e);
-        document.addEventListener('pointermove', onMove);
-        document.addEventListener('pointerup', onUp);
+        document.addEventListener('pointermove', onMove, {passive:false});
+        document.addEventListener('pointerup', onUp, {passive:false});
+        document.addEventListener('pointercancel', onUp, {passive:false});
       });
     });
   });
@@ -1149,6 +1179,31 @@ const REPORT_DATA = {"practiceQuestions": [{"id": "2019-1", "year": "2019", "que
     });
   });
   renderExam();
+})();
+</script>
+
+<script>
+(function(){
+  const slider = document.getElementById('fontScale');
+  const valueNode = document.getElementById('fontScaleValue');
+  if (!slider || !valueNode) return;
+  const key = 'csp-j1-note-font-scale';
+  function clamp(value){
+    const n = parseInt(value, 10);
+    if (!Number.isFinite(n)) return 100;
+    return Math.max(90, Math.min(150, n));
+  }
+  function apply(value){
+    const size = clamp(value);
+    slider.value = String(size);
+    valueNode.textContent = size + '%';
+    document.documentElement.style.setProperty('--note-font-scale', String(size / 100));
+    try { localStorage.setItem(key, String(size)); } catch (err) {}
+  }
+  let saved = 100;
+  try { saved = localStorage.getItem(key) || 100; } catch (err) {}
+  apply(saved);
+  slider.addEventListener('input', function(){ apply(slider.value); });
 })();
 </script>
 
