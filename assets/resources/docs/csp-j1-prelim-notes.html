@@ -321,7 +321,8 @@ function initFloat(){
       (host || line).insertBefore(handle, (host || line).firstChild);
 
       var floated = false, placeholder = null, wrapper = null;
-      var dragging = false, activePointerId = null;
+      var dragging = false, activePointerId = null, movedDuringDrag = false;
+      var lastTapTime = 0, lastTapX = 0, lastTapY = 0;
       var offX = 0, offY = 0, startX = 0, startY = 0;
       var saved = [];
 
@@ -392,6 +393,7 @@ function initFloat(){
           try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
         }
         dragging = true;
+        movedDuringDrag = false;
         activePointerId = e.pointerId;
         startX = e.clientX; startY = e.clientY;
         if (floated && wrapper) {
@@ -405,10 +407,11 @@ function initFloat(){
         e.preventDefault();
         var dx = e.clientX - startX, dy = e.clientY - startY;
         if (!floated){
-          if (Math.abs(dx) > 6 || Math.abs(dy) > 6){ floatIt(e.clientX, e.clientY); }
+          if (Math.abs(dx) > 6 || Math.abs(dy) > 6){ movedDuringDrag = true; floatIt(e.clientX, e.clientY); }
           return;
         }
         if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+        movedDuringDrag = true;
         var w = wrapper.offsetWidth;
         var x = Math.max(8, Math.min(e.clientX - offX, window.innerWidth - w - 8));
         var y = Math.max(8, Math.min(e.clientY - offY, window.innerHeight - 40));
@@ -420,6 +423,18 @@ function initFloat(){
         if (e && e.preventDefault) e.preventDefault();
         if (e && e.currentTarget && e.currentTarget.releasePointerCapture) {
           try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+        }
+        if (floated && !movedDuringDrag && e && e.target && !e.target.closest('.inline-choice, button, input, select')) {
+          var now = Date.now();
+          var tapDist = Math.hypot(e.clientX - lastTapX, e.clientY - lastTapY);
+          if (now - lastTapTime < 420 && tapDist < 34) {
+            restore();
+            lastTapTime = 0;
+          } else {
+            lastTapTime = now;
+            lastTapX = e.clientX;
+            lastTapY = e.clientY;
+          }
         }
         dragging = false;
         activePointerId = null;
