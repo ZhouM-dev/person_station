@@ -25,17 +25,28 @@ select,input[type=search]{height:40px;border:1px solid #cbd3da;background:#fff;b
 @media(max-width:720px){.topbar{align-items:flex-start;flex-direction:column;gap:8px;padding:12px 15px} .wrap{padding:18px 12px 36px} .page-head{align-items:flex-start;flex-direction:column} .syllabus-blocks{grid-template-columns:1fr} .toolbar>*{width:100%} select,input[type=search]{min-width:0} .card-head{align-items:flex-start}}
 /* ===== 拖动浮起：组合题小题 ===== */
 .subquestion{position:relative}
-.subquestion-handle{display:inline-flex;align-items:center;justify-content:center;height:20px;padding:0 8px;border-radius:999px;background:var(--primary);color:#fff;font-size:11px;line-height:1;cursor:grab;white-space:nowrap;vertical-align:middle;margin-right:6px;box-shadow:0 2px 8px rgba(0,0,0,.28);user-select:none;-webkit-user-select:none;opacity:.85;transition:opacity .15s}
+.subquestion-handle{display:inline-flex;align-items:center;justify-content:center;height:20px;padding:0 8px;border-radius:999px;background:var(--primary);color:#fff;font-size:11px;line-height:1;cursor:grab;white-space:nowrap;vertical-align:middle;margin-right:6px;box-shadow:0 2px 8px rgba(0,0,0,.28);user-select:none;-webkit-user-select:none;touch-action:none;opacity:.85;transition:opacity .15s}
 .subquestion-handle:hover{opacity:1}
 .subquestion-handle:active{cursor:grabbing}
-.subquestion.floating{position:fixed!important;z-index:9999!important;margin:0!important;padding:14px 14px 14px 16px!important;border:1px solid var(--line)!important;border-left:4px solid var(--primary)!important;border-radius:12px!important;background:#fff!important;box-shadow:0 18px 50px rgba(0,0,0,.3)!important;max-height:72vh;overflow:auto;cursor:grab;user-select:none;-webkit-user-select:none}
+.subquestion.floating{position:fixed!important;z-index:9999!important;margin:0!important;padding:14px 14px 14px 16px!important;border:1px solid var(--line)!important;border-left:4px solid var(--primary)!important;border-radius:12px!important;background:#fff!important;box-shadow:0 18px 50px rgba(0,0,0,.3)!important;max-height:72vh;overflow:auto;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}
 .subquestion.floating:active{cursor:grabbing}
 .subquestion.floating .option{cursor:pointer}
 .subquestion-placeholder{border:1px dashed var(--line);border-radius:8px;margin-top:14px;background:var(--bg);opacity:.55}
+.font-scale-control{display:flex;align-items:center;gap:8px;margin-left:auto;color:var(--muted);font-size:13px;white-space:nowrap}
+.font-scale-control input{width:180px;accent-color:var(--primary)}
+.font-scale-value{min-width:42px;color:var(--text);font-weight:800}
+:root{--note-font-scale:1}
+body{font-size:calc(15px * var(--note-font-scale))}
+h1{font-size:calc(20px * var(--note-font-scale))}
+h2{font-size:calc(24px * var(--note-font-scale))}
+.syllabus-block h3{font-size:calc(15px * var(--note-font-scale))}
+.type-badge{font-size:calc(12px * var(--note-font-scale))}
+.feedback{font-size:calc(14px * var(--note-font-scale))}
+@media(max-width:720px){.font-scale-control{margin-left:0}.font-scale-control input{width:160px}}
 </style>
 </head>
 <body>
-<header><div class="topbar"><h1>CSP-S1 初赛整理</h1><nav><button class="tab active" data-page="syllabus">考纲查看</button><button class="tab" data-page="practice">真题练习</button></nav></div></header>
+<header><div class="topbar"><h1>CSP-S1 初赛整理</h1><nav><button class="tab active" data-page="syllabus">考纲查看</button><button class="tab" data-page="practice">真题练习</button></nav><label class="font-scale-control">字号 <input id="fontScale" type="range" min="90" max="150" step="5" value="100"><span class="font-scale-value" id="fontScaleValue">100%</span></label></div></header>
 <main class="wrap">
 <section class="page" id="syllabusPage"><div class="page-head"><div><h2>考纲查看</h2><p class="subtitle">CSP-S1 提高级考纲</p></div></div><div class="toolbar"><input id="syllabusSearch" type="search" placeholder="搜索考纲内容"><div class="filters"><button class="filter active" data-level="all">全部</button><button class="filter" data-level="5">等级 5</button><button class="filter" data-level="6">等级 6</button><button class="filter" data-level="7">等级 7</button><button class="filter" data-level="8">等级 8</button></div></div><div id="syllabusList"><details class="syllabus-section" open>
 <summary><span>2.2.1 基础知识与编程环境</span><small>5 个条目</small></summary>
@@ -247,6 +258,9 @@ function renderPractice(){const year=yearFilter.value,type=typeFilter.value,term
 // ===== 拖动浮起：组合题小题 =====
 function initFloat(){
   document.querySelectorAll('.subquestion').forEach(function(subQ){
+    var card = subQ.closest('.card');
+    var typeBadge = card && card.querySelector('.type-badge');
+    if (typeBadge && typeBadge.textContent.trim() === '单项选择题') return;
     if (subQ.querySelector('.subquestion-handle')) return;
     var handle = document.createElement('span');
     handle.className = 'subquestion-handle';
@@ -257,7 +271,7 @@ function initFloat(){
     else subQ.insertBefore(handle, subQ.firstChild);
 
     var floated = false, placeholder = null;
-    var dragging = false, moved = false;
+    var dragging = false, moved = false, activePointerId = null;
     var offX = 0, offY = 0, startX = 0, startY = 0;
     function floatIt(cx, cy){
       floated = true;
@@ -284,13 +298,20 @@ function initFloat(){
     function onDown(e){
       if (e.target.closest('.option')) return;
       if (!floated && !handle.contains(e.target)) return;
+      e.preventDefault();
+      if (e.currentTarget && e.currentTarget.setPointerCapture) {
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+      }
       dragging = true; moved = false;
+      activePointerId = e.pointerId;
       startX = e.clientX; startY = e.clientY;
       var rect = subQ.getBoundingClientRect();
       if (floated){ offX = e.clientX - rect.left; offY = e.clientY - rect.top; }
     }
     function onMove(e){
       if (!dragging) return;
+      if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      e.preventDefault();
       var dx = e.clientX - startX, dy = e.clientY - startY;
       if (!floated){
         if (Math.abs(dx) > 6 || Math.abs(dy) > 6){ floatIt(e.clientX, e.clientY); moved = true; }
@@ -304,22 +325,31 @@ function initFloat(){
       subQ.style.left = x + 'px';
       subQ.style.top = y + 'px';
     }
-    function onUp(){
+    function onUp(e){
+      if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      if (e && e.preventDefault) e.preventDefault();
+      if (e && e.currentTarget && e.currentTarget.releasePointerCapture) {
+        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
       dragging = false;
+      activePointerId = null;
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
     }
     handle.addEventListener('pointerdown', function(e){
       e.stopPropagation();
       onDown(e);
-      document.addEventListener('pointermove', onMove);
-      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointermove', onMove, {passive:false});
+      document.addEventListener('pointerup', onUp, {passive:false});
+      document.addEventListener('pointercancel', onUp, {passive:false});
     });
     subQ.addEventListener('pointerdown', function(e){
       if (!floated) return;
       onDown(e);
-      document.addEventListener('pointermove', onMove);
-      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointermove', onMove, {passive:false});
+      document.addEventListener('pointerup', onUp, {passive:false});
+      document.addEventListener('pointercancel', onUp, {passive:false});
     });
     subQ.addEventListener('dblclick', function(e){
       if (!floated) return;
@@ -328,5 +358,29 @@ function initFloat(){
     });
   });
 }
+</script>
+<script>
+(function(){
+  const slider = document.getElementById('fontScale');
+  const valueNode = document.getElementById('fontScaleValue');
+  if (!slider || !valueNode) return;
+  const key = 'csp-s1-note-font-scale';
+  function clamp(value){
+    const n = parseInt(value, 10);
+    if (!Number.isFinite(n)) return 100;
+    return Math.max(90, Math.min(150, n));
+  }
+  function apply(value){
+    const size = clamp(value);
+    slider.value = String(size);
+    valueNode.textContent = size + '%';
+    document.documentElement.style.setProperty('--note-font-scale', String(size / 100));
+    try { localStorage.setItem(key, String(size)); } catch (err) {}
+  }
+  let saved = 100;
+  try { saved = localStorage.getItem(key) || 100; } catch (err) {}
+  apply(saved);
+  slider.addEventListener('input', function(){ apply(slider.value); });
+})();
 </script>
 </body></html>
