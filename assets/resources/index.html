@@ -43,6 +43,7 @@
       white-space: nowrap;
     }
     .doc-list tr { border-bottom: 1px solid transparent; }
+    .doc-list tbody tr[data-href] { cursor: pointer; }
     .doc-list tbody tr:hover { background: var(--code-bg); }
     .doc-list tbody tr.is-selected {
       background: #fff;
@@ -127,7 +128,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr>
+          <tr data-href="docs/CSP-专题卷合集.html" tabindex="0" aria-label="打开 CSP 专题卷合集（考试版）· 客观题题库">
             <td>
               <a class="doc-open doc-name" href="docs/CSP-专题卷合集.html">
                 <span class="doc-name-text">CSP 专题卷合集（考试版）· 客观题题库</span>
@@ -137,7 +138,7 @@
             <td>Chrome HTML Document</td>
             <td>410 KB</td>
           </tr>
-          <tr class="is-selected">
+          <tr class="is-selected" data-href="docs/csp-j1-prelim-notes.html" tabindex="0" aria-label="打开 CSP-J1 初赛综合整理">
             <td>
               <a class="doc-open doc-name" href="docs/csp-j1-prelim-notes.html">
                 <span class="doc-name-text">CSP-J1 初赛综合整理</span>
@@ -147,7 +148,7 @@
             <td>Chrome HTML Document</td>
             <td>755 KB</td>
           </tr>
-          <tr>
+          <tr data-href="docs/csp-s1-prelim-notes.html" tabindex="0" aria-label="打开 CSP-S1 初赛整理">
             <td>
               <a class="doc-open doc-name" href="docs/csp-s1-prelim-notes.html">
                 <span class="doc-name-text">CSP-S1 初赛整理</span>
@@ -182,5 +183,18 @@
       <p>© 2026 个人站 · 由 GitHub Pages 托管</p>
     </div>
   </footer>
+  <script>
+    document.querySelectorAll(".doc-list tbody tr[data-href]").forEach((row) => {
+      row.addEventListener("click", (event) => {
+        if (event.target.closest("a")) return;
+        window.location.href = row.dataset.href;
+      });
+      row.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        window.location.href = row.dataset.href;
+      });
+    });
+  </script>
 </body>
 </html>
