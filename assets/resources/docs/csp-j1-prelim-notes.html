@@ -69,6 +69,29 @@ table{font-size:calc(14px * var(--note-font-scale))}
 .subitem-float.floating{position:fixed;z-index:9999;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:12px;background:#fff;box-shadow:0 18px 50px rgba(0,0,0,.3);max-height:72vh;overflow:auto;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}
 .subitem-float.floating:active{cursor:grabbing}
 .subitem-placeholder{border:1px dashed var(--line);border-radius:8px;background:var(--bg);opacity:.55}
+/* ===== 阅读程序 / 完善程序：全屏代码阅读器 ===== */
+.code-reader-open{margin-left:auto;border:1px solid var(--line);border-radius:6px;padding:6px 9px;background:#fff;color:var(--ink);font:inherit;font-weight:800;cursor:pointer;white-space:nowrap}
+.code-reader-open:hover{border-color:var(--blue);color:var(--blue);background:#eff6ff}
+.code-reader-dialog{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#f8fafc;color:var(--ink)}
+.code-reader-dialog::backdrop{background:rgba(15,23,42,.62)}
+.code-reader-shell{display:grid;grid-template-rows:auto minmax(0,1fr);height:100dvh;overflow:hidden}
+.code-reader-head{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);background:#fff}
+.code-reader-title{min-width:0;margin-right:auto;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.code-reader-close{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font-size:24px;line-height:1;cursor:pointer}
+.code-reader-close:hover{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.code-reader-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);min-height:0}
+.code-reader-main{min-width:0;overflow:auto;padding:16px}
+.code-reader-main .markdown-body{max-height:none;min-height:100%;background:#fff}
+.code-reader-main pre{font-size:15px;line-height:1.65}
+.code-reader-side{min-width:0;overflow:auto;padding:14px;border-left:1px solid var(--line);background:#fff}
+.code-question-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(82px,1fr));gap:8px;margin-bottom:12px}
+.code-question-tab{border:1px solid var(--line);border-radius:6px;padding:8px;background:#fff;color:var(--ink);font:inherit;font-weight:800;cursor:pointer}
+.code-question-tab:hover,.code-question-tab.active{border-color:var(--blue);background:#eff6ff;color:#1d4ed8}
+.code-option-flyout{position:sticky;top:0;border:1px solid #93c5fd;border-left:4px solid var(--blue);border-radius:8px;padding:12px;background:#fff;box-shadow:0 12px 30px rgba(15,23,42,.16)}
+.code-option-flyout .inline-answer-line{margin-bottom:0}
+.code-option-question{margin:0 0 10px;font-weight:800;line-height:1.65}
+body.code-reader-active{overflow:hidden}
+@media(max-width:760px){.code-reader-layout{grid-template-columns:1fr;grid-template-rows:minmax(52vh,1fr) minmax(220px,42vh)}.code-reader-side{border-left:0;border-top:1px solid var(--line)}.code-reader-main{padding:10px}.code-reader-side{padding:10px}}
 </style>
 </head>
 <body>
@@ -718,6 +741,122 @@ const REPORT_DATA = {"practiceQuestions": [{"id": "2019-1", "year": "2019", "que
       {}
     );
   }
+  function installCodeReader(card, question, prompt, task){
+    if (!task || !['阅读程序', '完善程序'].includes(question.section) || !(question.choices || []).length) return;
+    const head = card.querySelector('.practice-head');
+    if (!head) return;
+    const openButton = document.createElement('button');
+    openButton.className = 'code-reader-open';
+    openButton.type = 'button';
+    openButton.textContent = '⛶ 全屏代码';
+    openButton.title = '全屏展开代码与题目选项';
+    head.appendChild(openButton);
+
+    openButton.addEventListener('click', () => {
+      const dialog = document.createElement('dialog');
+      dialog.className = 'code-reader-dialog';
+      dialog.innerHTML = `
+        <div class="code-reader-shell">
+          <header class="code-reader-head">
+            <div class="code-reader-title"></div>
+            <button class="code-reader-close" type="button" aria-label="关闭全屏代码" title="关闭">×</button>
+          </header>
+          <div class="code-reader-layout">
+            <section class="code-reader-main" aria-label="题面与代码"></section>
+            <aside class="code-reader-side" aria-label="题目与选项">
+              <div class="code-question-tabs" role="tablist" aria-label="选择题目"></div>
+              <div class="code-option-flyout" aria-live="polite"></div>
+            </aside>
+          </div>
+        </div>`;
+      dialog.querySelector('.code-reader-title').textContent = question.title || `${question.year} 年 第 ${question.question} 题`;
+      const main = dialog.querySelector('.code-reader-main');
+      const promptClone = prompt.cloneNode(true);
+      promptClone.classList.remove('practice-scroll-body');
+      main.appendChild(promptClone);
+
+      const tabs = dialog.querySelector('.code-question-tabs');
+      const flyout = dialog.querySelector('.code-option-flyout');
+      let activeChoice = question.choices[0];
+      const originalLines = () => Array.from(task.querySelectorAll('.inline-answer-line'));
+      const lineForChoice = choice => originalLines().find(line => line.dataset.question === String(choice.question));
+      const hostForChoice = choice => selectableHosts(task).find(host => {
+        const cleanHost = host.cloneNode(true);
+        cleanHost.querySelectorAll('.subitem-handle,.inline-answer-line').forEach(node => node.remove());
+        return (cleanHost.textContent || '').trim().startsWith(`${choice.question}.`);
+      });
+
+      function renderFlyout(){
+        flyout.innerHTML = '';
+        const host = hostForChoice(activeChoice);
+        const originalLine = lineForChoice(activeChoice);
+        const questionText = document.createElement('div');
+        questionText.className = 'code-option-question';
+        if (host) {
+          const hostClone = host.cloneNode(true);
+          hostClone.querySelectorAll('.subitem-handle,.inline-answer-line').forEach(node => node.remove());
+          questionText.innerHTML = hostClone.innerHTML;
+        } else {
+          questionText.textContent = `第 ${activeChoice.question} 题`;
+        }
+        flyout.appendChild(questionText);
+        if (originalLine) {
+          const lineClone = originalLine.cloneNode(true);
+          lineClone.querySelectorAll('.subitem-handle').forEach(node => node.remove());
+          flyout.appendChild(lineClone);
+        }
+        Array.from(tabs.children).forEach(tab => {
+          const active = tab.dataset.question === String(activeChoice.question);
+          tab.classList.toggle('active', active);
+          tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+      }
+
+      question.choices.forEach(choice => {
+        const tab = document.createElement('button');
+        tab.className = 'code-question-tab';
+        tab.type = 'button';
+        tab.dataset.question = String(choice.question);
+        tab.textContent = `第 ${choice.question} 题`;
+        tab.setAttribute('role', 'tab');
+        tab.addEventListener('click', () => {
+          activeChoice = choice;
+          renderFlyout();
+        });
+        tabs.appendChild(tab);
+      });
+      const pickOption = target => {
+        const option = target.closest('.inline-choice');
+        if (!option) return false;
+        const originalLine = lineForChoice(activeChoice);
+        const originalOption = originalLine && Array.from(originalLine.querySelectorAll('.inline-choice'))
+          .find(item => item.dataset.originalKey === option.dataset.originalKey);
+        if (originalOption) originalOption.click();
+        renderFlyout();
+        return true;
+      };
+      flyout.addEventListener('click', event => pickOption(event.target));
+      flyout.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        if (pickOption(event.target)) event.preventDefault();
+      });
+      renderFlyout();
+
+      const close = () => dialog.open && dialog.close();
+      dialog.querySelector('.code-reader-close').addEventListener('click', close);
+      dialog.addEventListener('cancel', event => {
+        event.preventDefault();
+        close();
+      });
+      dialog.addEventListener('close', () => {
+        document.body.classList.remove('code-reader-active');
+        dialog.remove();
+      });
+      document.body.appendChild(dialog);
+      document.body.classList.add('code-reader-active');
+      dialog.showModal();
+    });
+  }
   function createQuestionCard(question){
     const card = document.createElement('article');
     card.className = 'practice-card';
@@ -737,8 +876,9 @@ const REPORT_DATA = {"practiceQuestions": [{"id": "2019-1", "year": "2019", "que
     prompt.className = 'markdown-body practice-scroll-body';
     prompt.innerHTML = question.promptMainHtml || question.promptHtml || '<p>题面未能渲染 Markdown。</p>';
     body.appendChild(prompt);
+    let task = null;
     if (question.promptTaskHtml) {
-      const task = document.createElement('div');
+      task = document.createElement('div');
       task.className = 'markdown-body practice-task-body';
       task.innerHTML = question.promptTaskHtml;
       body.appendChild(task);
@@ -766,6 +906,7 @@ const REPORT_DATA = {"practiceQuestions": [{"id": "2019-1", "year": "2019", "que
     details.appendChild(pointList);
     body.appendChild(details);
     card.appendChild(body);
+    installCodeReader(card, question, prompt, task);
     return card;
   }
   function getPageSize(){

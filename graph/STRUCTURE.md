@@ -19,6 +19,9 @@
   - 布局/选择/拖拽/删除用 `id`(uid)；显示/导出/比较用 `label`。
   - `nodeLabelOf(uid)` 取显示编号；`compareNodeUids(a,b)` 按 label 排序 uid。
 - **近期行为约定**：
+  - 2026-09-05 输入数据 `draw` 解析成功后无条件执行一次整理：森林调用 `organizeTreeForest(false)`，普通图调用 `organizeGraphOnLattice` 后渲染；不通过 `organizeLayout` 切换开关，不额外记录撤销快照，保留原有开关 UI 适用性规则。
+  - 2026-09-05 生成二叉树保存 `graph.treeKind = "binary"` 和子节点 `binarySide`；`centeredTreeXPositions` 为单子节点补空槽，确保左右偏移且重新整理稳定。`organizeAsTree` 的长链蛇形布局跳过生成的二叉树；复制节点保留 binarySide，JSON 撤销快照保留元数据。普通文本导出不保存这些布局属性。
+  - 2026-09-05 生成类型合并为普通图 / 树（两版同步）。`state.nextGraphKind` 在普通图成功生成后内部交替 graph/dag，每次打开页面从 graph 开始，不改变菜单或有向开关；树保持原循环。`buildFixedLengthRandomGraph` 复用普通图网格布局，DAG 边从低索引指向高索引保证无环，支持 1–100 点。点权 `.node-weight` 深色主题为 #5eead4，浅色为 #0f766e。下方旧行号快照以函数名搜索定位为准。
   - 点权：节点可选数值属性，输入格式 `label:weight`（单列冒号）或首行 `n m` + 第二行 n 个点权值（点权行，`parseGraph` 的 `nodeWeightValues`）+ 第三行起边；「显示点权」开关 `#nodeWeightInput`（默认开）控制节点下方 `.node-weight` 小字；导出时全部节点带点权则输出点权行格式（`updateDataInput` 的 `allWeighted`/`weightLine`）；双击节点（绘制模式）打开「编辑节点」对话框 `#nodeIdDialog` 可同时改编号与点权（`#nodeWeightEdit`）；随机生成与绘制建节点自动带点权（1–10，绘制按「图内已有带点权节点则新节点带权」规则）。
   - mobile 独有：双指同时点击（快速且无缩放移动）触发撤销（`finishPinchZoom` 里 `wasTwoFingerTap` 判断，仅 mobile.html，app.js 不同步）。
   - 「返回主页」按钮：侧栏底部（`.home-link`），带文字，指向 `https://zhoum-dev.github.io/person_station/`。
@@ -26,7 +29,7 @@
   - 「清除」按钮：任何模式下始终显示（`.brush-tools` 不再整体隐藏，只隐藏 select/.color-palette）；若有圈选笔迹则只清圈选笔迹，若有多选节点则删多选节点，二者同时存在时圈选笔迹优先；无选择时保留原单击清画布、双击清全部。桌面版 `Del` 等价点击清除。
   - 表格：单元格宽/高/字号三设置；拖拽绘制实时预览网格；松手按单元格尺寸自动算行列。
   - 节点重编号：允许重复（对话框放开「编号已存在」校验）；保存时用 uid 定位当前节点，重复 label 不会联动修改；触摸模式选中单点可连续输入当前模式字符改编号（如 `1`+`0`+`0` => `100`），数字图只接收数字、字母图只接收字母，刚选中 `1` 输入 `A` 当前连通块转字母，刚选中 `A` 输入 `1` 当前连通块转数字；模式切换按所在连通块内旧 label 分组映射，保留重复编号关系；输入数据仍默认去重。
-  - 连通块复制：触摸模式双击节点选中整块（`selectComponentOfNode`）；右上角 `#duplicateBtn` 复制（`duplicateSelectedComponent`，编号与原块相同，新副本被选中）。
+  - 双击选择与复制：`nodeDoubleClickSelection` 按所在连通块判断树，普通图选整块，树沿已整理根（无布局取最上方、同高最左节点）选当前节点及后代；`selectComponentOfNode` 应用选择。右上角 `#duplicateBtn` 复制选中节点及内部边（`duplicateSelectedComponent`，编号与原块相同，新副本被选中）。两版同步，按 uid 遍历以支持重复编号。
 - **协作协议**：我是 `graph` 执行者，只改 `person_station/graph/` 及本人汇报文件；每轮只认领一个任务。
 
 ---

@@ -162,6 +162,7 @@ const state = {
   editingEdgeIndex: null,
   editingNodeId: null,
   nextTreeKind: "multi",
+  nextGraphKind: "graph",
   restoringSettings: false,
   mobilePersistTimer: null,
   stylusPageDeleteActive: false,
@@ -1006,14 +1007,17 @@ function draw(options = {}) {
     state.mobileAnimatedSelectedNodeId = null;
     state.scale = 1; state.offsetX = 0; state.offsetY = 0;
     updateTransform();
-    const autoArrangeTree = state.treeAutoArrange && isForestGraph(graph);
-    if (autoArrangeTree) organizeTreeForest(false);
-    else renderGraph();
+    const inputIsForest = isForestGraph(graph);
+    if (inputIsForest) organizeTreeForest(false);
+    else {
+      organizeGraphOnLattice(graph);
+      renderGraph();
+    }
     updateEmptyState();
-    if (!autoArrangeTree) elements.status.textContent = `${graph.nodes.length} 个节点 · ${graph.edges.length} 条边`;
+    if (!inputIsForest) elements.status.textContent = `${graph.nodes.length} 个节点 · ${graph.edges.length} 条边`;
     updateGraphCount();
     elements.statusDot.classList.add("ready");
-    elements.selection.textContent = autoArrangeTree ? "数据已更新 · 已自动整理树" : "未选择节点";
+    elements.selection.textContent = "数据已更新 · 已整理一次";
     state.lastCommittedInput = elements.input.value;
     updateOrganizeToggleUI();
     hideError();
@@ -1311,7 +1315,7 @@ function organizeAsTree(recordHistory = true, targetCenterOverride = null) {
     ? graph.nodes.filter(node => adjacency.get(node.id).length === 1).map(node => node.id).sort(compareNodeUids)
     : [];
   const rootIsPathEndpoint = pathEndpointIds.includes(rootId);
-  if (isLongPath && rootIsPathEndpoint) {
+  if (isLongPath && rootIsPathEndpoint && graph.treeKind !== "binary") {
     const startId = rootId;
     const orderedNodes = [];
     let previousId = null;
@@ -1379,6 +1383,8 @@ function layoutPathSerpentine(nodes, rect) {
 
 function centeredTreeXPositions(rootId, children, horizontalGap) {
   const positions = new Map();
+  const binaryNodes = state.graph?.treeKind === "binary"
+    ? new Map(state.graph.nodes.map(node => [node.id, node])) : null;
   let leafCursor = 0;
   const placeSubtree = id => {
     const childIds = children.get(id) ?? [];
@@ -1388,7 +1394,16 @@ function centeredTreeXPositions(rootId, children, horizontalGap) {
       positions.set(id, x);
       return x;
     }
-    const childPositions = childIds.map(placeSubtree);
+    // 单子节点补一个空位，让父节点仍位于左右槽位之间。
+    const slots = binaryNodes && childIds.length === 1
+      ? (binaryNodes.get(childIds[0])?.binarySide === "right" ? [null, childIds[0]] : [childIds[0], null])
+      : childIds;
+    const childPositions = slots.map(childId => {
+      if (childId !== null) return placeSubtree(childId);
+      const x = leafCursor;
+      leafCursor += horizontalGap;
+      return x;
+    });
     const x = (childPositions[0] + childPositions[childPositions.length - 1]) / 2;
     positions.set(id, x);
     return x;
@@ -1914,10 +1929,45 @@ function selectedNodeDragGroupFor(node) {
     }));
 }
 
-function selectComponentOfNode(nodeId) {
+function nodeDoubleClickSelection(nodeId) {
   const component = treeComponents(state.graph).find(comp => comp.ids.includes(nodeId));
-  if (!component) return;
-  state.boxSelectedNodeIds = new Set(component.ids);
+  if (!component) return null;
+  const componentIds = new Set(component.ids);
+  const edges = state.graph.edges.filter(edge => componentIds.has(edge.source) && componentIds.has(edge.target));
+  if (!isTreeGraph({ nodes: component.nodes, edges })) {
+    return { ids: componentIds, kind: "连通块" };
+  }
+  const rootId = componentIds.has(state.treeLayout?.rootId)
+    ? state.treeLayout.rootId
+    : [...component.nodes].sort((a, b) => a.y - b.y || a.x - b.x || compareNodeUids(a.id, b.id))[0].id;
+  // 先确定父子关系，再收集后代，避免折弯的分支因坐标变化被截断。
+  const parents = new Map([[rootId, null]]);
+  const pending = [rootId];
+  while (pending.length) {
+    const id = pending.pop();
+    component.adjacency.get(id).forEach(neighbor => {
+      if (parents.has(neighbor)) return;
+      parents.set(neighbor, id);
+      pending.push(neighbor);
+    });
+  }
+  const ids = new Set([nodeId]);
+  pending.push(nodeId);
+  while (pending.length) {
+    const id = pending.pop();
+    component.adjacency.get(id).forEach(neighbor => {
+      if (parents.get(neighbor) !== id) return;
+      ids.add(neighbor);
+      pending.push(neighbor);
+    });
+  }
+  return { ids, kind: "子树" };
+}
+
+function selectComponentOfNode(nodeId) {
+  const selection = nodeDoubleClickSelection(nodeId);
+  if (!selection) return;
+  state.boxSelectedNodeIds = selection.ids;
   state.selectedNode = null;
   state.nodeRelabelInput = null;
   document.querySelectorAll(".graph-node.selected").forEach(el => el.classList.remove("selected"));
@@ -1925,13 +1975,13 @@ function selectComponentOfNode(nodeId) {
     state.mobileAnimatedSelectedNodeId = nodeId;
   }
   applyBoxSelectionClasses(state.boxSelectedNodeIds);
-  elements.selection.textContent = `已选中连通块 · ${component.ids.length} 个节点`;
+  elements.selection.textContent = `已选中${selection.kind} · ${selection.ids.size} 个节点`;
 }
 
 function duplicateSelectedComponent() {
   const selectedIds = state.boxSelectedNodeIds;
   if (!state.graph || selectedIds.size === 0) {
-    elements.selection.textContent = "请先选中一个连通块（双击节点可选中整块）";
+    elements.selection.textContent = "请先选中节点";
     return;
   }
   pushUndoSnapshot();
@@ -1946,7 +1996,8 @@ function duplicateSelectedComponent() {
         label: node.label,
         x: node.x + offset,
         y: node.y + offset,
-        weight: node.weight
+        weight: node.weight,
+        binarySide: node.binarySide
       };
       uidMap.set(node.id, newNode.id);
       return newNode;
@@ -3752,8 +3803,8 @@ function buildFixedLengthRandomGraph(count, type, treeKind) {
     if (usedEdges.has(key)) return false;
     usedEdges.add(key);
     edges.push({
-      source: String(sourceIndex + 1),
-      target: String(targetIndex + 1),
+      source: String((type === "dag" ? low : sourceIndex) + 1),
+      target: String((type === "dag" ? high : targetIndex) + 1),
       weight: String(randomInteger(1, 10))
     });
     return true;
@@ -3777,13 +3828,17 @@ function buildFixedLengthRandomGraph(count, type, treeKind) {
   };
 
   place(0, 0);
-  if (type === "graph") {
-    // 前三个节点组成等边三角形，确保普通图一定有环。
-    place(1, 0);
-    place(0, 1);
-    addEdge(0, 1);
-    addEdge(1, 2);
-    addEdge(2, 0);
+  if (type === "graph" || type === "dag") {
+    // 普通图保留三角环；DAG 的边统一从低序号指向高序号。
+    if (count >= 2) {
+      place(1, 0);
+      addEdge(0, 1);
+    }
+    if (count >= 3) {
+      place(0, 1);
+      addEdge(1, 2);
+      addEdge(2, 0);
+    }
     for (let index = 3; index < count; index++) {
       const candidate = findPlacement(5);
       const nodeIndex = place(candidate.q, candidate.r);
@@ -3823,16 +3878,29 @@ function buildFixedLengthRandomGraph(count, type, treeKind) {
     latticeR: placement.r
   }));
   const idByIndex = new Map(nodes.map((node, index) => [String(index + 1), node.id]));
+  if (type === "tree" && treeKind === "binary") {
+    const childrenByParent = new Map();
+    edges.forEach(edge => {
+      if (!childrenByParent.has(edge.source)) childrenByParent.set(edge.source, []);
+      childrenByParent.get(edge.source).push(nodes[Number(edge.target) - 1]);
+    });
+    childrenByParent.forEach(children => {
+      children.forEach((node, index) => {
+        node.binarySide = children.length === 1
+          ? (Math.random() < .5 ? "left" : "right") : (index === 0 ? "left" : "right");
+      });
+    });
+  }
   edges.forEach(edge => {
     edge.source = idByIndex.get(edge.source);
     edge.target = idByIndex.get(edge.target);
   });
-  return { nodes, edges, uniformNodeRadius, generatedEdgeLength };
+  return { nodes, edges, uniformNodeRadius, generatedEdgeLength, treeKind: type === "tree" ? treeKind : null };
 }
 
 function generateRandomGraph() {
   const count = Number(elements.randomNodeCount.value);
-  const type = elements.randomType.value;
+  const type = elements.randomType.value === "tree" ? "tree" : state.nextGraphKind;
   const treeKind = type === "tree" ? state.nextTreeKind : null;
   if (!Number.isInteger(count) || count < 1 || count > 100) {
     showError("节点数量应为 1 到 100 之间的整数");
@@ -3853,7 +3921,8 @@ function generateRandomGraph() {
 
   const edgeLength = state.graph.generatedEdgeLength;
   const treeKindName = treeKind === "binary" ? "随机二叉树" : "随机多叉树";
-  commitGraphEdit(type === "tree" ? `已生成带权${treeKindName}` : "已生成随机连通带环图");
+  const graphKindName = type === "dag" ? "随机有向无环图" : "随机连通带环图";
+  commitGraphEdit(type === "tree" ? `已生成带权${treeKindName}` : `已生成${graphKindName}`);
 
   if (type === "tree") {
     fitGraph();
@@ -3862,7 +3931,9 @@ function generateRandomGraph() {
     saveSettings();
   } else {
     fitGraph();
-    elements.selection.textContent = `已生成随机连通带环图 · 固定边长 ${edgeLength.toFixed(1)}`;
+    elements.selection.textContent = `已生成${graphKindName} · 固定边长 ${edgeLength.toFixed(1)}`;
+    state.nextGraphKind = type === "dag" ? "graph" : "dag";
+    saveSettings();
   }
 }
 
@@ -3938,7 +4009,7 @@ function restoreSettings() {
     elements.showNodeWeights.checked = settings.showNodeWeights !== false;
     if (typeof settings.rootId === "string") elements.rootInput.value = settings.rootId;
     if (settings.randomNodeCount !== undefined) elements.randomNodeCount.value = settings.randomNodeCount;
-    if (["graph", "tree"].includes(settings.randomType)) elements.randomType.value = settings.randomType;
+    elements.randomType.value = "graph";
     if (["multi", "binary"].includes(settings.nextTreeKind)) state.nextTreeKind = settings.nextTreeKind;
     if (isMobile && elements.mobilePenOnly) elements.mobilePenOnly.checked = settings.mobilePenOnly !== false;
     if (["brush", "line", "arrow", "text", "table"].includes(settings.canvasTool)) elements.canvasTool.value = settings.canvasTool;
