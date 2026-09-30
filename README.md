@@ -38,15 +38,24 @@ person_station/              ← GitHub Pages 站点根目录（main 分支根�
 └── README.md                ← 本文件
 ```
 
-## 三、发布流程
+## 三、分支协作模型
+
+| 分支 | 职责 |
+|---|---|
+| `main` | 最终发布分支，GitHub Pages 从这里上线（只合并、不直接改） |
+| `baoan_station` | 台式机（工作站）的工作分支 |
+| `a_laptop` | 笔记本的工作分支 |
+
+**发布流程（Pull Request 方式）**
 
 ```
 1. 准备内容   把 AI 生成的文章/落地页写成 Markdown，放入 content/
-2. 渲染生成   bun scripts/build.ts   （Markdown + 模板 → HTML 到 posts/ pages/）
+2. 渲染生成   bun scripts/build.ts   （Markdown + 模板 → HTML）
 3. 本地预览   bun serve .           （浏览器打开 http://localhost:3000 查看）
-4. 提交版本   git add -A && git commit -m "..."   （内容留档）
-5. 推送上线   git push              （GitHub Pages 自动部署）
-6. 线上验证   访问 https://ZhouM-dev.github.io/person_station/ 确认
+4. 提交推送   bun scripts/publish.ts "说明"   （渲染+提交+推送到自己的分支）
+5. 创建 PR    在 GitHub 把工作分支 → main 发起 Pull Request 并合并
+6. 自动上线   main 更新后 GitHub Pages 自动部署
+7. 线上验证   访问 https://ZhouM-dev.github.io/person_station/ 确认
 ```
 
 ## 四、Markdown 文件格式（front-matter）
@@ -71,13 +80,15 @@ description: 一句话摘要（用于列表/SEO）
 - Git：已装（随 Cherry Studio 内置）
 - SSH：已配（`~/.ssh/id_ed25519`，公钥已加到 GitHub）
 
-## 六、一键发布
+## 六、一键推送
 
-改动后运行下面命令，自动完成「渲染 → 提交 → 推送」，一两分钟后上线：
+改动后运行下面命令，自动完成「渲染 → 提交 → 推送到当前工作分支」：
 
 ```powershell
 bun scripts/publish.ts "提交说明"
 ```
+
+推送后在 GitHub 创建 Pull Request 合并到 `main`，合并后一两分钟自动上线。
 
 ## 七、后续可扩展
 
