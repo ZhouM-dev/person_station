@@ -1,0 +1,30 @@
+{
+  "generated_from": "TAGS.md",
+  "note": "由 tools/gen_tags.py 生成，请勿手改",
+  "tags": {
+    "feat:circnum": "填空位",
+    "feat:figure": "配图",
+    "feat:formula": "公式",
+    "feat:lineref": "行号引用",
+    "feat:table": "表格",
+    "topic:basics": "计算机基础与常识",
+    "topic:bisect": "二分查找与二分答案",
+    "topic:bit": "位运算",
+    "topic:combinatorics": "组合计数",
+    "topic:complexity": "复杂度分析",
+    "topic:divide": "分治",
+    "topic:dp": "动态规划",
+    "topic:ds": "数据结构",
+    "topic:graph": "图论",
+    "topic:greedy": "贪心",
+    "topic:lang": "语言基础与语法",
+    "topic:math": "初等数学与代数",
+    "topic:number": "进制与数论",
+    "topic:prob": "概率与期望",
+    "topic:search": "搜索与回溯",
+    "topic:sim": "模拟与枚举",
+    "topic:sort": "排序",
+    "topic:string": "字符串",
+    "topic:tree": "树与二叉树"
+  }
+}

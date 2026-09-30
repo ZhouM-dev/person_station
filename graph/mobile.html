@@ -840,7 +840,7 @@ body[data-mobile-standalone="true"] .sidebar-collapsed .sidebar-toggle svg { tra
         <p>输入数据停止约 0.5 秒后自动绘制</p>
       </section>
 
-      <a class="home-link" href="https://zhoum-dev.github.io/person_station/" title="返回主页" aria-label="返回主页">
+      <a class="home-link" href="../" title="返回主页" aria-label="返回主页">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 3l9 8m-14 0v10h5v-6h4v6h5V11"/></svg>
         <span>返回主页</span>
       </a>
@@ -923,6 +923,7 @@ body[data-mobile-standalone="true"] .sidebar-collapsed .sidebar-toggle svg { tra
           <div class="top-random" aria-label="随机生成图形">
             <span>随机</span>
             <input id="randomNodeCount" type="number" value="8" min="1" max="100" aria-label="随机生成的节点数量" title="节点数量">
+            <input id="randomEdgeCount" type="number" min="0" max="4950" step="1" placeholder="边数" aria-label="随机生成的边数量（留空自动）" title="边数（留空自动，仅普通图）">
             <select id="randomType" aria-label="随机生成类型" title="生成类型">
               <option value="graph">普通图</option>
               <option value="tree">树</option>
@@ -1058,6 +1059,7 @@ const elements = {
   rootInput: document.querySelector("#rootInput"),
   organize: document.querySelector("#organizeBtn"),
   randomNodeCount: document.querySelector("#randomNodeCount"),
+  randomEdgeCount: document.querySelector("#randomEdgeCount"),
   randomType: document.querySelector("#randomType"),
   random: document.querySelector("#randomBtn"),
   duplicate: document.querySelector("#duplicateBtn"),
@@ -4797,7 +4799,7 @@ function latticePoint(q, r, edgeLength) {
   };
 }
 
-function buildFixedLengthRandomGraph(count, type, treeKind) {
+function buildFixedLengthRandomGraph(count, type, treeKind, edgeCount = null) {
   const uniformNodeRadius = Math.max(...Array.from({ length: count }, (_, index) => naturalNodeRadius(index + 1)));
   // 在原有两个直径的基础上增加 30%，同时仍保持所有生成边严格等长。
   const generatedEdgeLength = uniformNodeRadius * 2 * GENERATED_EDGE_DIAMETER_MULTIPLIER;
@@ -4886,6 +4888,23 @@ function buildFixedLengthRandomGraph(count, type, treeKind) {
     }
   }
 
+  if (type !== "tree" && edgeCount !== null) {
+    // 自定义数量从所有不同节点对中无放回抽取，允许稀疏图和完全图。
+    const pairs = [];
+    for (let source = 0; source < count; source++) {
+      for (let target = source + 1; target < count; target++) pairs.push([source, target]);
+    }
+    edges.length = 0;
+    usedEdges.clear();
+    for (let index = 0; index < edgeCount; index++) {
+      const chosen = randomInteger(index, pairs.length - 1);
+      [pairs[index], pairs[chosen]] = [pairs[chosen], pairs[index]];
+      const [source, target] = pairs[index];
+      if (type === "graph" && Math.random() < .5) addEdge(target, source);
+      else addEdge(source, target);
+    }
+  }
+
   const nodes = placements.map((placement, index) => ({
     id: `n${Date.now().toString(36)}_${index + 1}`,
     label: String(index + 1),
@@ -4920,18 +4939,26 @@ function generateRandomGraph() {
   const count = Number(elements.randomNodeCount.value);
   const type = elements.randomType.value === "tree" ? "tree" : state.nextGraphKind;
   const treeKind = type === "tree" ? state.nextTreeKind : null;
+  const edgeText = elements.randomEdgeCount.value.trim();
+  const edgeCount = type === "tree" || edgeText === "" ? null : Number(edgeText);
   if (!Number.isInteger(count) || count < 1 || count > 100) {
     showError("节点数量应为 1 到 100 之间的整数");
     return;
   }
-  if (type === "graph" && count < 3) {
+  const maxEdges = count * (count - 1) / 2;
+  if (type !== "tree" && (elements.randomEdgeCount.validity.badInput
+    || (edgeCount !== null && (!Number.isInteger(edgeCount) || edgeCount < 0 || edgeCount > maxEdges)))) {
+    showError(`边数应为 0 到 ${maxEdges} 之间的整数，留空则自动生成`);
+    return;
+  }
+  if (type === "graph" && edgeCount === null && count < 3) {
     showError("生成带环图至少需要 3 个节点");
     return;
   }
 
   cancelPointerInteraction();
   pushUndoSnapshot();
-  state.graph = buildFixedLengthRandomGraph(count, type, treeKind);
+  state.graph = buildFixedLengthRandomGraph(count, type, treeKind, edgeCount);
   state.treeLayout = null;
   state.edgeStart = null;
   state.treeAutoArrange = type === "tree";
@@ -4939,7 +4966,7 @@ function generateRandomGraph() {
 
   const edgeLength = state.graph.generatedEdgeLength;
   const treeKindName = treeKind === "binary" ? "随机二叉树" : "随机多叉树";
-  const graphKindName = type === "dag" ? "随机有向无环图" : "随机连通带环图";
+  const graphKindName = type === "dag" ? "随机有向无环图" : (edgeCount === null ? "随机连通带环图" : "随机图");
   commitGraphEdit(type === "tree" ? `已生成带权${treeKindName}` : `已生成${graphKindName}`);
 
   if (type === "tree") {
@@ -4949,7 +4976,9 @@ function generateRandomGraph() {
     saveSettings();
   } else {
     fitGraph();
-    elements.selection.textContent = `已生成${graphKindName} · 固定边长 ${edgeLength.toFixed(1)}`;
+    elements.selection.textContent = edgeCount === null
+      ? `已生成${graphKindName} · 固定边长 ${edgeLength.toFixed(1)}`
+      : `已生成${graphKindName} · ${count} 个节点 · ${edgeCount} 条边`;
     state.nextGraphKind = type === "dag" ? "graph" : "dag";
     saveSettings();
   }
@@ -4994,6 +5023,7 @@ function saveSettings() {
     showNodeWeights: elements.showNodeWeights.checked,
     rootId: elements.rootInput.value,
     randomNodeCount: elements.randomNodeCount.value,
+    randomEdgeCount: elements.randomEdgeCount.value,
     randomType: elements.randomType.value,
     canvasTool: elements.canvasTool.value,
     brushColor: elements.brushColor.value,
@@ -5027,6 +5057,7 @@ function restoreSettings() {
     elements.showNodeWeights.checked = settings.showNodeWeights !== false;
     if (typeof settings.rootId === "string") elements.rootInput.value = settings.rootId;
     if (settings.randomNodeCount !== undefined) elements.randomNodeCount.value = settings.randomNodeCount;
+    if (settings.randomEdgeCount !== undefined) elements.randomEdgeCount.value = settings.randomEdgeCount;
     elements.randomType.value = "graph";
     if (["multi", "binary"].includes(settings.nextTreeKind)) state.nextTreeKind = settings.nextTreeKind;
     if (isMobile && elements.mobilePenOnly) elements.mobilePenOnly.checked = settings.mobilePenOnly !== false;
@@ -5818,7 +5849,7 @@ elements.nodeIdDialog.addEventListener("close", () => {
   elements.nodeIdInput.setCustomValidity("");
   elements.nodeWeightEdit.setCustomValidity("");
 });
-[elements.randomNodeCount, elements.randomType, elements.tableCellWidth, elements.tableCellHeight, elements.tableFontSize]
+[elements.randomNodeCount, elements.randomEdgeCount, elements.randomType, elements.tableCellWidth, elements.tableCellHeight, elements.tableFontSize]
   .forEach(control => control.addEventListener("change", saveSettings));
 elements.tableFontSize.addEventListener("change", () => {
   let tableObject = state.contentEditSession?.target?.closest?.(".canvas-table-editor td")
@@ -5865,6 +5896,12 @@ elements.fit.addEventListener("click", () => fitGraph());
 elements.modeButtons.forEach(button => button.addEventListener("click", () => setMode(button.dataset.mode)));
 elements.organize.addEventListener("click", organizeLayout);
 elements.random.addEventListener("click", generateRandomGraph);
+elements.randomType.addEventListener("change", () => {
+  elements.randomEdgeCount.disabled = elements.randomType.value === "tree";
+});
+elements.randomEdgeCount.addEventListener("keydown", event => {
+  if (event.key === "Enter") generateRandomGraph();
+});
 elements.duplicate.addEventListener("click", duplicateSelectedComponent);
 elements.randomNodeCount.addEventListener("keydown", event => {
   if (event.key === "Enter") generateRandomGraph();

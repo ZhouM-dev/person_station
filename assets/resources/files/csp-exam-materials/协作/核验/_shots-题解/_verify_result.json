@@ -1,0 +1,145 @@
+{
+  "steps": {
+    "ui_switch_method": {
+      "real_file_touched": false,
+      "method": "把 viewer.html 全文复制到 %TEMP%\\tiku-verify-sol\\viewer-showSolution-false.html，仅替换 `showSolution:   true,` -> `showSolution:   false,` 后打开该副本",
+      "temp_copy": "C:\\Users\\Administrator\\AppData\\Local\\Temp\\tiku-verify-sol\\viewer-showSolution-false.html"
+    },
+    "page_url": "file:///F:/ai/%E8%AF%95%E9%A2%98/viewer.html",
+    "A0_baseline": {
+      "nCards": 43,
+      "nSol": 43,
+      "nSolDoc": 43,
+      "nSolDocVisible": 43,
+      "nBodyOpen": 0,
+      "bodyClass": "ui-hide-topic-tags",
+      "uiHideSol": false,
+      "mode": "normal",
+      "submitVisible": false,
+      "nOptsTotal": 148,
+      "nVerdict": 0
+    },
+    "A1_collapsed": {
+      "nSol": 43,
+      "all_bodies_hidden": true,
+      "all_btn_text": [
+        "题解"
+      ],
+      "n_body_open": 0,
+      "shot": "01-普通模式-题解默认折叠.png"
+    },
+    "A2_expanded": {
+      "bodyHidden": false,
+      "visible": true,
+      "answer": "答案：C",
+      "btnText": "收起题解",
+      "dataOpen": "true",
+      "shot": "02-普通模式-点击题解已展开.png"
+    },
+    "A3_true_false_marks": [
+      {
+        "qid": "csp-s1-2019b-016",
+        "typeBadge": "判断",
+        "answer": "答案：×",
+        "note": "none",
+        "expected": "×",
+        "shot": "03-判断题-016-题解.png"
+      },
+      {
+        "qid": "csp-s1-2019b-017",
+        "typeBadge": "判断",
+        "answer": "答案：√",
+        "note": "none",
+        "expected": "√",
+        "shot": "04-判断题-017-题解.png"
+      }
+    ],
+    "A4_all_answers_vs_meta": {
+      "n_sol": 43,
+      "n_expect": 43,
+      "mismatch": {},
+      "tf_count": 12,
+      "tf_marks": {
+        "csp-s1-2019b-016": "×",
+        "csp-s1-2019b-017": "√",
+        "csp-s1-2019b-018": "√",
+        "csp-s1-2019b-019": "√",
+        "csp-s1-2019b-022": "√",
+        "csp-s1-2019b-023": "×",
+        "csp-s1-2019b-024": "√",
+        "csp-s1-2019b-025": "×",
+        "csp-s1-2019b-028": "√",
+        "csp-s1-2019b-029": "×",
+        "csp-s1-2019b-030": "×",
+        "csp-s1-2019b-031": "×"
+      },
+      "tf_all_are_sqrt_or_x": true,
+      "any_T_or_F": []
+    },
+    "A5_no_leak_into_stem": {
+      "n_cards": 43,
+      "stem_leak_qids": [],
+      "opt_leak_qids": [],
+      "q16_stem_text": "",
+      "q16_stem_has_solution_head": false,
+      "all_have_solution_obj": true
+    },
+    "B1_exam_before_submit": {
+      "nCards": 43,
+      "nSol": 0,
+      "nSolDoc": 0,
+      "nSolDocVisible": 0,
+      "mode": "exam",
+      "submitVisible": true,
+      "bodyClass": "ui-hide-topic-tags",
+      "dom_has_any_soltoggle": 0,
+      "text_scan": {
+        "has_tijie": false,
+        "has_daan": false
+      }
+    },
+    "B2_exam_after_submit": {
+      "nCards": 43,
+      "nSol": 43,
+      "nSolDoc": 43,
+      "nSolDocVisible": 43,
+      "nBodyOpen": 0,
+      "mode": "exam",
+      "submitVisible": false,
+      "shot_before": "05-考试模式-提交前-无题解.png",
+      "shot_after": "06-考试模式-提交后-题解出现.png"
+    },
+    "C_overlay": {
+      "nCards": 6,
+      "nSol": 6,
+      "allCollapsed": true,
+      "firstQid": "csp-s1-2019b-016",
+      "firstAnswer": "答案：×",
+      "stemLeak": false,
+      "btnText": "题解",
+      "shot_collapsed": "07-题面浮层-题解默认折叠.png",
+      "shot_expanded": "08-题面浮层-题解展开.png",
+      "tf_in_overlay": "答案：×",
+      "shot_overlay_tf": "09-题面浮层-判断题题解.png"
+    },
+    "D_showSolution_false": {
+      "nCards": 43,
+      "nSol": 43,
+      "nSolDoc": 43,
+      "uiHideSol_class": true,
+      "bodyClass": "ui-hide-topic-tags ui-hide-solution",
+      "text_scan": {
+        "has_tijie": false,
+        "has_daan": false
+      },
+      "shot": "10-showSolution-false-题解全消失.png",
+      "after_toggle_back": {
+        "nSol": 43,
+        "nSolDoc": 43,
+        "uiHideSol_class": false
+      }
+    }
+  },
+  "notes": [],
+  "page_errors": []
+}
