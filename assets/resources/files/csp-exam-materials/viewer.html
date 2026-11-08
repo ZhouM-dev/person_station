@@ -64,6 +64,7 @@
   .dirbadge::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
   .dirbadge.off{color:var(--ink3); background:var(--line2); border-color:var(--line)}
   .dirbadge.off::before{background:var(--ink3)}
+  .scan-hint{color:var(--warn);font-size:12px;line-height:1.4}
   /* 字号控件：教学投屏用，A− / 百分比 / A+ */
   .fontctl{
     display:flex; align-items:center;
@@ -472,6 +473,8 @@
   <div class="brand" data-ui="header.brand">试题库<small>浏览 · 对比校阅</small></div>
   <span class="dirbadge" id="dirBadge" data-ui="header.dir-badge" hidden></span>
   <button class="btn" id="rescanBtn" data-ui="header.rescan" hidden>重新加载</button>
+  <button class="btn" id="changeDirBtn" type="button" hidden>切换文件夹</button>
+  <span class="scan-hint" id="scanHint" role="status" hidden></span>
   <div class="quizctl" data-ui="header.quiz-mode">
     <button class="qm" data-mode="normal" data-ui="header.quiz-mode.normal"
             aria-pressed="true" title="点选项即时判对错">普通模式</button>
@@ -1236,6 +1239,14 @@ function updateDirBadge(){
   }
   $("#rescanBtn").hidden = !connected;
   $("#rescanBtn").textContent = state.mode === "hosted" ? "重新加载" : "重新扫描";
+  $("#changeDirBtn").hidden = state.mode !== "local" || !(state.rootHandle || state.papers.length);
+  const groups = new Set(state.papers.map(p => p.examDir).filter(k => k === "csp-j1" || k === "csp-s1"));
+  const hint = $("#scanHint");
+  hint.hidden = state.mode !== "local" || groups.size !== 1;
+  if (!hint.hidden){
+    const group = groups.has("csp-j1") ? "J" : "S";
+    hint.textContent = `当前只扫描到 ${group} 组；切换到包含 J/S 两组的“题库”或“试题”目录`;
+  }
 }
 
 /** <input> / 拖拽 这两条兜底路径的 File 列表 -> [{file, rel}] */
@@ -2283,6 +2294,7 @@ $("#pick").onclick = () => {
   return pendingHandle ? restoreDirectory(pendingHandle) : pickDirectory();
 };
 $("#rescanBtn").onclick = () => state.mode === "hosted" ? loadHostedLibrary() : scanHandle();
+$("#changeDirBtn").onclick = () => fsSupported() ? pickDirectory() : $("#dirInput").click();
 
 /* --- 兜底：文件选择 --- */
 $("#pickFile").onclick = () => $("#fileInput").click();

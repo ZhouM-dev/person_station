@@ -660,63 +660,9 @@ body[data-mobile-standalone="true"] .canvas-table-editor td { padding: 1px 2px; 
   }
 }
 
-/* 单文件移动版专用：侧栏镜像到右侧，普通 index.html 不带此标记。 */
-body[data-mobile-standalone="true"] .app-shell {
-  grid-template-columns: minmax(0, 1fr) 350px;
-}
-body[data-mobile-standalone="true"] .app-shell.sidebar-collapsed {
-  grid-template-columns: minmax(0, 1fr) 50px;
-}
-body[data-mobile-standalone="true"] .sidebar {
-  grid-column: 2;
-  grid-row: 1;
-  border-right: 0;
-  border-left: 1px solid var(--line);
-  box-shadow: -12px 0 35px rgba(0,0,0,.22);
-}
-body[data-mobile-standalone="true"] .workspace {
-  grid-column: 1;
-  grid-row: 1;
-}
+/* 单文件移动版使用上方左侧栏布局，保留移动端专用设置。 */
 body[data-mobile-standalone="true"] .mobile-only-option { display: flex; }
 body[data-mobile-standalone="true"] .shortcut-grid .mobile-only-option { display: flex; }
-body[data-mobile-standalone="true"] .sidebar-toggle svg { transform: rotate(180deg); }
-body[data-mobile-standalone="true"] .sidebar-collapsed .sidebar-toggle svg { transform: none; }
-
-@media (max-width: 1050px) and (min-width: 761px) {
-  body[data-mobile-standalone="true"] .app-shell {
-    grid-template-columns: minmax(0, 1fr) 310px;
-  }
-  body[data-mobile-standalone="true"] .app-shell.sidebar-collapsed {
-    grid-template-columns: minmax(0, 1fr) 50px;
-  }
-}
-
-@media (max-width: 760px) {
-  body[data-mobile-standalone="true"] .sidebar {
-    inset: 0 0 0 auto;
-    box-shadow: -18px 0 50px rgba(0,0,0,.42);
-  }
-  body[data-mobile-standalone="true"] .app-shell.sidebar-collapsed .sidebar {
-    top: max(8px, env(safe-area-inset-top));
-    right: 8px;
-    bottom: 8px;
-    left: auto;
-  }
-  body[data-mobile-standalone="true"] .workspace-header {
-    padding-right: 58px;
-    padding-left: 7px;
-  }
-  body[data-mobile-standalone="true"] .table-settings { right: 58px; }
-  body[data-mobile-standalone="true"] .canvas-footer { padding-right: 58px; }
-}
-
-@media (max-width: 430px) {
-  body[data-mobile-standalone="true"] .workspace-header {
-    padding-right: 56px;
-    padding-left: 7px;
-  }
-}
 
 </style>
 </head>

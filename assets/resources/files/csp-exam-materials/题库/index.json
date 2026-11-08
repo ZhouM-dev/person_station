@@ -97,6 +97,19 @@
           "has_answers": true,
           "answered_count": 43,
           "answer_source": "mapped"
+        },
+        {
+          "paper_id": "csp-s1-2026",
+          "year": 2026,
+          "title": "2026 CCF 非专业级别软件能力认证第一轮（CSP-S1）提高级 C++语言试题",
+          "question_count": 43,
+          "total_score": 100,
+          "path": "题库/csp-s1/2026",
+          "source_file": "题目/2026-试题.pdf",
+          "source_kind": "text",
+          "has_answers": true,
+          "answered_count": 43,
+          "answer_source": "mapped"
         }
       ]
     },
@@ -193,6 +206,19 @@
           "path": "题库/csp-j1/2025",
           "source_file": "题目/csp-j/2025-试题.pdf",
           "source_kind": "scanned",
+          "has_answers": true,
+          "answered_count": 43,
+          "answer_source": "mapped"
+        },
+        {
+          "paper_id": "csp-j1-2026",
+          "year": 2026,
+          "title": "2026 CCF 非专业级别软件能力认证第一轮（CSP-J1）入门级 C++ 语言试题",
+          "question_count": 43,
+          "total_score": 100,
+          "path": "题库/csp-j1/2026",
+          "source_file": "题目/csp-j/2026-试题.pdf",
+          "source_kind": "text",
           "has_answers": true,
           "answered_count": 43,
           "answer_source": "mapped"

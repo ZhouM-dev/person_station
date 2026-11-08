@@ -19,6 +19,7 @@
   - 布局/选择/拖拽/删除用 `id`(uid)；显示/导出/比较用 `label`。
   - `nodeLabelOf(uid)` 取显示编号；`compareNodeUids(a,b)` 按 label 排序 uid。
 - **近期行为约定**：
+  - 2026-11-08 mobile.html 移除右侧镜像 CSS，复用左侧栏基础布局（宽屏网格、窄屏左抽屉/收起入口、箭头及顶栏留白），保留移动端专用设置和视口补偿逻辑。
   - 2026-09-30 两版新增 `#randomEdgeCount`，留空自动；`buildFixedLengthRandomGraph(count, type, treeKind, edgeCount = null)` 在自定义时从全部节点对无放回抽样，精确边数且 DAG 维持索引递增方向。自定义图允许不连通和非等长边，范围 0..n(n−1)/2；生成前校验，树忽略并禁用输入。saveSettings/restoreSettings 保存恢复边数，支持 Enter。
   - 2026-09-05 输入数据 `draw` 解析成功后无条件执行一次整理：森林调用 `organizeTreeForest(false)`，普通图调用 `organizeGraphOnLattice` 后渲染；不通过 `organizeLayout` 切换开关，不额外记录撤销快照，保留原有开关 UI 适用性规则。
   - 2026-09-05 生成二叉树保存 `graph.treeKind = "binary"` 和子节点 `binarySide`；`centeredTreeXPositions` 为单子节点补空槽，确保左右偏移且重新整理稳定。`organizeAsTree` 的长链蛇形布局跳过生成的二叉树；复制节点保留 binarySide，JSON 撤销快照保留元数据。普通文本导出不保存这些布局属性。

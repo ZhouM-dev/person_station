@@ -4,6 +4,11 @@
 (function () {
   "use strict";
 
+  var resourcesLink = document.getElementById("resourcesLink");
+  if (resourcesLink && window.location.hostname === "120.24.168.222") {
+    resourcesLink.href = "/res/";
+  }
+
   var btn = document.getElementById("manualBtn");
   var modal = document.getElementById("manualModal");
   var body = document.getElementById("manualBody");
