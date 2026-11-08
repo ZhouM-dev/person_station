@@ -1,0 +1,763 @@
+{
+  "paper_id": "csp-j1-2024",
+  "title": "2024 CCF 非专业级别软件能力认证第一轮（CSP-J1）入门级 C++语言试题",
+  "exam": "CSP-J1",
+  "year": 2024,
+  "paper_variant": "",
+  "date": "2024-09-21",
+  "duration_minutes": 120,
+  "total_score": 100,
+  "question_count": 42,
+  "source": {
+    "file": "题目/csp-j/2024-试题.pdf",
+    "copy": "题库/csp-j1/2024/2024-试题.pdf",
+    "sha256": "6907B0AC155D37961B765C5F5B9424A504F03BD9E6CB98BD770CD1527038DBE3",
+    "pages": 12,
+    "kind": "text",
+    "ocr": false
+  },
+  "converted_at": "2026-09-20",
+  "spec_version": "1.5",
+  "sections": [
+    {
+      "id": "part1",
+      "title": "一、单项选择题",
+      "score": 30,
+      "qids": [
+        "csp-j1-2024-001",
+        "csp-j1-2024-002",
+        "csp-j1-2024-003",
+        "csp-j1-2024-004",
+        "csp-j1-2024-005",
+        "csp-j1-2024-006",
+        "csp-j1-2024-007",
+        "csp-j1-2024-008",
+        "csp-j1-2024-009",
+        "csp-j1-2024-010",
+        "csp-j1-2024-011",
+        "csp-j1-2024-012",
+        "csp-j1-2024-013",
+        "csp-j1-2024-014",
+        "csp-j1-2024-015"
+      ]
+    },
+    {
+      "id": "part2",
+      "title": "二、阅读程序",
+      "score": 40,
+      "qids": [
+        "csp-j1-2024-016",
+        "csp-j1-2024-017",
+        "csp-j1-2024-018",
+        "csp-j1-2024-019",
+        "csp-j1-2024-020",
+        "csp-j1-2024-021",
+        "csp-j1-2024-022",
+        "csp-j1-2024-023",
+        "csp-j1-2024-024",
+        "csp-j1-2024-025",
+        "csp-j1-2024-026",
+        "csp-j1-2024-027",
+        "csp-j1-2024-028",
+        "csp-j1-2024-029",
+        "csp-j1-2024-030",
+        "csp-j1-2024-031",
+        "csp-j1-2024-032"
+      ]
+    },
+    {
+      "id": "part3",
+      "title": "三、完善程序",
+      "score": 30,
+      "qids": [
+        "csp-j1-2024-033",
+        "csp-j1-2024-034",
+        "csp-j1-2024-035",
+        "csp-j1-2024-036",
+        "csp-j1-2024-037",
+        "csp-j1-2024-038",
+        "csp-j1-2024-039",
+        "csp-j1-2024-040",
+        "csp-j1-2024-041",
+        "csp-j1-2024-042"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "name": "阅读程序(1)",
+      "section": "part2",
+      "program_note": "这段程序读入一个正整数 x，输出两件事：x 以内（含 x）素数的个数与这些素数之和，也就是 `countPrimes(x)` 与 `sumPrimes(x)`。判断素数的 `isPrime` 用试除法：先排除小于等于 1 的数，再让 i 从 2 试到 i × i 超过 n 为止——合数一定有个不超过 √n 的因子，试到 √n 就够。理解这一组要抓住两点：一是两个统计函数共用同一个 `isPrime`，各小题改的只是外层循环或试除的上界；二是把试除上界放宽（改成 `i <= n / 2`）只是多做了几次除法、判定结果不变，而放宽到 `i <= n` 就会让 n 自己被当成因子，把所有数都判成合数，个数与和一起变成 0。"
+    },
+    {
+      "name": "阅读程序(2)",
+      "section": "part2",
+      "program_note": "这是「最小花费爬楼梯」型的动态规划。输入 n 与 n 个花费，每次可以向上走 1 级或 2 级，踩到第 i 级要付出 `cost[i-1]`，要求算出走到第 n 级之上所付的最小总花费。程序用 `dp[i] = min(dp[i-1], dp[i-2]) + cost[i-1]` 表示「到第 i 级为止的最小花费」，最后返回 `min(dp[n], dp[n-1])`（从第 n 级或第 n − 1 级跨出去）。理解这一组要抓住两点：一是 `dp` 记的是累计最小花费而不是元素最小值，所以它输出的一般不是数组里最小的那个数；二是 `dp` 的下标必须落在 0 到 n 之间，把它改成 `dp[i-3]` 之类会在 i 较小时越界（那是运行期错误，不是编译错误）。"
+    },
+    {
+      "name": "阅读程序(3)",
+      "section": "part2",
+      "program_note": "这段程序的核心是递归函数 `customFunction(a, b)`：b 等于 0 时返回 a，否则返回 `a + customFunction(a, b-1)`，也就是把 a 连加 b + 1 次，结果等于 (b + 1) × a（b ≥ 0 时）。main 读入 x、y，先把返回值存进 result，再输出 `pow(result, 2)`，即把它平方后打印。理解这一组要抓住两点：一是题目常常问「返回值」而程序打印的是平方后的「输出」，两者差一次平方（如输入 2 3 时返回值是 8、输出是 64），这是这一组几个小题共用的陷阱；二是递归只靠 `b == 0` 收口，b 为负数时永远减不到 0，程序会一直递归到栈溢出，而把递归式改成 `a - 1` 后返回值的连加结构也随之改变。"
+    },
+    {
+      "name": "完善程序(1)",
+      "section": "part3",
+      "program_note": "这段程序要判断输入的正整数 n 是不是完全平方数（存在正整数 x 使 x² = n）：是就输出 `n is a square number`，否则输出 `n is not a square number`。`isSquare` 的做法是枚举试：i 从 1 开始，上界取 ⌊√num⌋，循环里判断 `num == i * i`，一旦相等就返回真，循环走完还没找到就返回假。理解这一组要抓住三点：起点必须从 1 开始（1 是完全平方数）；上界取到 ⌊√num⌋ 就够，不能减 1、也不能拿 `num / 2` 去开方；循环里的判断必须是相等比较，写成赋值会把 num 改掉、判定随之出错。另外这段代码用到 `sqrt`、`floor`，需要 `<cmath>`，而卷面程序只引了 `iostream` 与 `vector`。"
+    },
+    {
+      "name": "完善程序(2)",
+      "section": "part3",
+      "program_note": "这段程序用递归解汉诺塔：`dfs(i, src, tmp, tgt)` 表示把 src 柱上的 i 个盘子借助 tmp 柱搬到 tgt 柱。i 等于 1 时直接 `move(src, tgt)` 一步挪完，这就是递归出口；否则分三步——先把上面 i − 1 个盘子借助 tgt 搬到 tmp，再把最底下那个大盘从 src 搬到 tgt，最后把那 i − 1 个盘子借助 src 搬到 tgt。输入是盘子数 n，输出是每一步的移动过程。理解这一组的关键在参数的含义：每次递归都要重新指定「起点、中转、终点」三个角色，中转与终点还会互换；同时递归的规模必须逐层递减到 1，写成 `i` 就会永不收敛。"
+    }
+  ],
+  "questions": [
+    {
+      "qid": "csp-j1-2024-001",
+      "no": 1,
+      "original_no": "1",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:lang"
+      ],
+      "answer": "C",
+      "answer_note": "32 位 `int` 用补码表示，取值范围是 −2³¹ 到 2³¹ − 1，也就是 −2147483648 到 2147483647，选 C。32 位里最高位是符号位，正数最大只能到 2³¹ − 1 = 2147483647；A、B 两项把负数端点写成 −2147483647，D 项把正数端点写成 +2147483648，都与补码范围不符。"
+    },
+    {
+      "qid": "csp-j1-2024-002",
+      "no": 2,
+      "original_no": "2",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "feat:formula",
+        "topic:number"
+      ],
+      "answer": "A",
+      "answer_note": "把四个数都化成十进制：14₈ = 12，1010₂ = 10，D₁₆ = 13，1101₂ = 13。先算括号 12 − 10 = 2，再乘 13 得 26，最后减 13，结果 13，选 A。"
+    },
+    {
+      "qid": "csp-j1-2024-003",
+      "no": 3,
+      "original_no": "3",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:combinatorics"
+      ],
+      "answer": "B",
+      "answer_note": "4 个人分给 3 个部门、每部门至少 1 人，只可能是 (2,1,1)、(1,2,1)、(1,1,2) 三种分配。按部门人数取组合：C(4,2)×C(3,1)×C(3,1) = 6 × 3 × 3 = 54，C(4,1)×C(3,2)×C(3,1) = 4 × 3 × 3 = 36，C(4,1)×C(3,1)×C(3,2) = 4 × 3 × 3 = 36，合计 54 + 36 + 36 = 126，选 B。用容斥核对：C(10,4) − 2×C(7,4) − C(6,4) + C(4,4) = 210 − 70 − 15 + 1 = 126。C 项 132、D 项 238 都没有正确体现「哪个部门出 2 人」这个唯一的分类结构，D 项甚至比不分部门的 C(10,4) = 210 还大。"
+    },
+    {
+      "qid": "csp-j1-2024-004",
+      "no": 4,
+      "original_no": "4",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:number"
+      ],
+      "answer": "D",
+      "answer_note": "格雷码要求相邻两个码字只差 1 位。逐对比较四个选项：A 项最后一步 0101 → 1000 差 3 位；B 项 0111 → 0100 差 2 位；C 项 0010 → 0100 差 2 位；只有 D 项每一步都只差 1 位，而且它对应的十进制是 0、1、3、2、6、7、5、4，正是 4 位格雷码的前 8 项，选 D。"
+    },
+    {
+      "qid": "csp-j1-2024-005",
+      "no": 5,
+      "original_no": "5",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:basics"
+      ],
+      "answer": "D",
+      "answer_note": "1MB = 1024 KB = 1024 × 1024 字节 = 1048576 字节，而 1 字节是 8 位，所以 1048576 × 8 = 8388608 位，选 D。B 项 1048576 是字节数、忘了乘 8；C 项 8000000 是拿 10⁶ 字节乘 8 得到的；A 项 1000000 既没按 1024 进率、也没乘 8。"
+    },
+    {
+      "qid": "csp-j1-2024-006",
+      "no": 6,
+      "original_no": "6",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:lang"
+      ],
+      "answer": "C",
+      "answer_note": "`int`、`float`、`char` 都是 C++ 语言自带的基本数据类型；`struct` 是把若干成员组合在一起的自定义复合类型，用它定义出来的是新类型，不属于基本类型，选 C。"
+    },
+    {
+      "qid": "csp-j1-2024-007",
+      "no": 7,
+      "original_no": "7",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:lang"
+      ],
+      "answer": "D",
+      "answer_note": "C++ 只有 `for`、`while`、`do-while` 三种循环语句；`repeat-until` 是 Pascal 里的「重复执行直到条件成立」语句，C++ 没有它，选 D。"
+    },
+    {
+      "qid": "csp-j1-2024-008",
+      "no": 8,
+      "original_no": "8",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:lang"
+      ],
+      "answer": "B",
+      "answer_note": "字符参与算术运算时用的是它的 ASCII 码：`'a'` = 97，97 + 13 = 110，对应的字符是 `'n'`，选 B。`'m'` = 109（相当于只加了 12）、`'z'` = 122（加了 25）、`'3'` = 51，三者都与 110 不符。"
+    },
+    {
+      "qid": "csp-j1-2024-009",
+      "no": 9,
+      "original_no": "9",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:bisect"
+      ],
+      "answer": "B",
+      "answer_note": "二分查找每比较一次就把待查区间缩小一半，n 个元素最多比较 ⌈log₂(n+1)⌉ 次。n = 1000 时，因为 2⁹ = 512 < 1001 ≤ 1024 = 2¹⁰，所以最多比较 10 次，选 B。C 项 7 对应的是 100 个元素量级，A 项 25 与二分结构对不上，D 项 1 是一次命中的最好情况。"
+    },
+    {
+      "qid": "csp-j1-2024-010",
+      "no": 10,
+      "original_no": "10",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:basics"
+      ],
+      "answer": "A",
+      "answer_note": "Notepad 是 Windows 自带的记事本程序，属于应用软件（文本编辑器），不是操作系统；Linux、Windows、macOS 三者都是操作系统，选 A。"
+    },
+    {
+      "qid": "csp-j1-2024-011",
+      "no": 11,
+      "original_no": "11",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:graph"
+      ],
+      "answer": "B",
+      "answer_note": "每条边连接两个顶点，会让这两个顶点的度数各加 1；把所有顶点的度数相加时每条边恰好被算两次，所以度数之和等于边数的两倍，选 B。A 项漏掉了「每条边贡献 2」，C、D 两项把边换成了顶点数。"
+    },
+    {
+      "qid": "csp-j1-2024-012",
+      "no": 12,
+      "original_no": "12",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:tree"
+      ],
+      "answer": "A",
+      "answer_note": "前序遍历的第一个结点 A 是整棵树的根；在中序 [D, B, E, A, F, C, G] 里，A 左边的 D、B、E 属于左子树，右边的 F、C、G 属于右子树。左子树前序 [B, D, E] 说明它的根是 B、D 在 B 左、E 在 B 右；右子树前序 [C, F, G] 说明根是 C、F 在 C 左、G 在 C 右。按「左、右、根」写后序：左子树 D、E、B，右子树 F、G、C，最后是根 A，合起来是 [D, E, B, F, G, C, A]，选 A。C 项把左子树写成 D、B、E，那是中序的顺序而不是后序。"
+    },
+    {
+      "qid": "csp-j1-2024-013",
+      "no": 13,
+      "original_no": "13",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:ds"
+      ],
+      "answer": "D",
+      "answer_note": "判断出栈序列能否出现，就按顺序模拟：需要某个数时就先把比它小的数依次入栈，再看栈顶是不是它。D 项要依次输出 1、3、5、2、4、6：弹出 1 后入栈 2、3 弹出 3，再入栈 4、5 弹出 5，此时栈里从底到顶是 2、4，序列下一个要的 2 被 4 压住、取不出来，所以 D 不可能，选 D。A、B、C 都能模拟出来：A 是全部入栈后全部弹出；B 是 1 出栈后入栈 2 到 6，再依次弹出 6、5、4、3、2；C 是入 1、2 弹 2，入 3、4 弹 4，入 5、6 弹 6、5，再弹 3、1。"
+    },
+    {
+      "qid": "csp-j1-2024-014",
+      "no": 14,
+      "original_no": "14",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:combinatorics"
+      ],
+      "answer": "A",
+      "answer_note": "把必须相邻的 3 个女生捆成一个整体，与 5 个男生合起来一共 6 个单位参加排列，有 6! = 720 种排法；捆在一起的 3 个女生内部还能互相换位，有 3! = 6 种；总数 720 × 6 = 4320，选 A。其余三项与 720 的倍数关系都不对：B 项 5040 = 720 × 7、C 项 3600 = 720 × 5、D 项 2880 = 720 × 4，都不是 3! 倍。"
+    },
+    {
+      "qid": "csp-j1-2024-015",
+      "no": 15,
+      "original_no": "15",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:basics"
+      ],
+      "answer": "B",
+      "answer_note": "编译器的主要作用是把源代码翻译成机器能直接执行的机器代码，选 B。A 项「直接执行源代码」是解释器的行为，而且编译器自己并不运行程序；C 项调试是调试器的功能；D 项运行时的内存管理由操作系统和运行时库负责。"
+    },
+    {
+      "qid": "csp-j1-2024-016",
+      "no": 16,
+      "original_no": "16",
+      "section": "part2",
+      "group": "阅读程序(1)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:number"
+      ],
+      "answer": "T",
+      "answer_note": "10 以内的素数是 2、3、5、7，一共 4 个，和是 2 + 3 + 5 + 7 = 17，程序输出 `4 17`，与题干说的完全一致，主张成立，填 √。"
+    },
+    {
+      "qid": "csp-j1-2024-017",
+      "no": 17,
+      "original_no": "17",
+      "section": "part2",
+      "group": "阅读程序(1)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:number"
+      ],
+      "answer": "F",
+      "answer_note": "把试除上界从 `i * i <= n` 放宽到 `i <= n / 2` 只是多试了一些除数，判定结果不变：20 以内的素数是 2、3、5、7、11、13、17、19，一共 8 个，`countPrimes(20)` 输出 8 而不是 6。实跑改后的程序，输入 20 输出 `8 77`（素数和是 77），主张不成立，填 ×。"
+    },
+    {
+      "qid": "csp-j1-2024-018",
+      "no": 18,
+      "original_no": "18",
+      "section": "part2",
+      "group": "阅读程序(1)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:number"
+      ],
+      "answer": "T",
+      "answer_note": "`sumPrimes` 里循环变量 i 从 2 一直取到 n，只要 `isPrime(i)` 为真就把 i 累加进 `sum`；而 `isPrime` 的判定与素数的定义一致（小于等于 1 返回假、试除到 √n 就能确定）。所以它算的正是 2 到 n 之间所有素数之和，主张成立，填 √。"
+    },
+    {
+      "qid": "csp-j1-2024-019",
+      "no": 19,
+      "original_no": "19",
+      "section": "part2",
+      "group": "阅读程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "topic:number"
+      ],
+      "answer": "B",
+      "answer_note": "50 以内的素数是 2、3、5、7、11、13、17、19、23、29、31、37、41、43、47，逐个累加得 5、10、17、28、41、58、77、100、129、160、197、238、281、328，和是 328，选 B。A 项 1060 是 100 以内所有素数之和（上界被放大了一倍），C 项 381、D 项 275 分别与 328 相差 53，都不符合这份素数表。"
+    },
+    {
+      "qid": "csp-j1-2024-020",
+      "no": 20,
+      "original_no": "20",
+      "section": "part2",
+      "group": "阅读程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "topic:number"
+      ],
+      "answer": "A",
+      "answer_note": "改成 `i <= n` 后试除会一直做到 i = n，而 `n % n == 0` 必然成立，于是每个 n ≥ 2 都被判成合数，个数与和都变成 0。实跑改后的程序，输入 10 输出 `0 0`，10 以内素数的个数与和都没算对，A 项成立。B 项「仍然输出 4 和 17」与实跑不符；C 项 `3 10` 不是这条改动会产生的结果；D 项说结果不变，而实际上循环次数从 √n 量级涨到了 n，反而更慢。"
+    },
+    {
+      "qid": "csp-j1-2024-021",
+      "no": 21,
+      "original_no": "21",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:dp"
+      ],
+      "answer": "T",
+      "answer_note": "把 cost = {10, 15, 20} 代进递推：`dp[0] = 0`、`dp[1] = cost[0] = 10`，`dp[2] = min(dp[1], dp[0]) + cost[1] = min(10, 0) + 15 = 15`，`dp[3] = min(dp[2], dp[1]) + cost[2] = min(15, 10) + 20 = 30`。函数返回 `min(dp[3], dp[2]) = min(30, 15) = 15`，与题干说的 15 一致，主张成立，填 √。"
+    },
+    {
+      "qid": "csp-j1-2024-022",
+      "no": 22,
+      "original_no": "22",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:lang"
+      ],
+      "answer": "F",
+      "answer_note": "把 `dp[i-1]` 换成 `dp[i-3]` 不会引起编译错误，越界是运行期才发生的事：i = 2 时 `dp[i-3]` 就是 `dp[-1]`。实跑这个改动后的程序，编译成功（退出码 0、没有任何诊断信息），运行到 i = 2 这一步才出错并中止（进程退出码 3221226505）。所以「可能产生编译错误」这一说法不成立，填 ×。"
+    },
+    {
+      "qid": "csp-j1-2024-023",
+      "no": 23,
+      "original_no": "23",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "true_false",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:dp"
+      ],
+      "answer": "F",
+      "answer_note": "程序算的是累计最小花费，不是数组里的最小值。反例：输入 cost = {10, 15, 20}，程序输出 15，而这个数组里最小的元素是 10。实跑该输入得到的正是 `15`，主张不成立，填 ×。"
+    },
+    {
+      "qid": "csp-j1-2024-024",
+      "no": 24,
+      "original_no": "24",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "topic:dp"
+      ],
+      "answer": "A",
+      "answer_note": "把 cost = {1, 100, 1, 1, 1, 100, 1, 1, 100, 1} 逐项递推：dp[1] = 1；dp[2] = min(1, 0) + 100 = 100；dp[3] = min(100, 1) + 1 = 2；dp[4] = min(2, 100) + 1 = 3；dp[5] = min(3, 2) + 1 = 3；dp[6] = min(3, 3) + 100 = 103；dp[7] = min(103, 3) + 1 = 4；dp[8] = min(4, 103) + 1 = 5；dp[9] = min(5, 4) + 100 = 104；dp[10] = min(104, 5) + 1 = 6。返回 min(dp[10], dp[9]) = min(6, 104) = 6，选 A。"
+    },
+    {
+      "qid": "csp-j1-2024-025",
+      "no": 25,
+      "original_no": "25",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "single_choice",
+      "score": 4,
+      "images": [],
+      "tags": [
+        "topic:dp"
+      ],
+      "answer": "B",
+      "answer_note": "把 cost = {10, 15, 30, 5, 5, 10, 20} 逐项递推：dp[1] = 10；dp[2] = min(10, 0) + 15 = 15；dp[3] = min(15, 10) + 30 = 40；dp[4] = min(40, 15) + 5 = 20；dp[5] = min(20, 40) + 5 = 25；dp[6] = min(25, 20) + 10 = 30；dp[7] = min(30, 25) + 20 = 45。返回 min(dp[7], dp[6]) = min(45, 30) = 30，选 B。"
+    },
+    {
+      "qid": "csp-j1-2024-026",
+      "no": 26,
+      "original_no": "26",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "topic:dp"
+      ],
+      "answer": "A",
+      "answer_note": "改动只发生在递推这一行，`dp[1] = cost[0] = 5` 保持不变。代进 cost = {5, 10, 15}：dp[2] = dp[1] + cost[0] = 5 + 5 = 10，dp[3] = dp[2] + cost[1] = 10 + 10 = 20，返回 min(dp[3], dp[2]) = min(20, 10) = 10，选 A。B 项 15、C 项 20、D 项 25 与这条递推链对不上。"
+    },
+    {
+      "qid": "csp-j1-2024-027",
+      "no": 27,
+      "original_no": "27",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:sim"
+      ],
+      "answer": "F",
+      "answer_note": "`customFunction(a, b)` 在 b ≥ 0 时把 a 连加 b + 1 次，结果是 (b + 1) × a，所以 `customFunction(2, 3)` 的返回值是 4 × 2 = 8，不是 64。64 是程序最终打印的数——main 里输出的是 `pow(result, 2)`，即 8² = 64；题干问的是「返回值」，主张不成立，填 ×。"
+    },
+    {
+      "qid": "csp-j1-2024-028",
+      "no": 28,
+      "original_no": "28",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:sim"
+      ],
+      "answer": "T",
+      "answer_note": "递归的出口是 `b == 0`，而 b 从负数出发只会越减越小、永远不等于 0，递归不会收敛。实跑输入 `2 -1`：进程在 20 秒内不返回，最终以栈溢出结束（退出码 3221225725，即十六进制的 0xC00000FD），主张成立，填 √。"
+    },
+    {
+      "qid": "csp-j1-2024-029",
+      "no": 29,
+      "original_no": "29",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:complexity"
+      ],
+      "answer": "T",
+      "answer_note": "每次递归只做一次加法，函数被调用的次数随 b 线性增长：实测 b = 10、100、1000、5000、20000 时的调用次数分别是 11、101、1001、5001、20001，正好都是 b + 1。b 越大要做的加法越多，运行时间就越长，主张成立，填 √。"
+    },
+    {
+      "qid": "csp-j1-2024-030",
+      "no": 30,
+      "original_no": "30",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "topic:sim"
+      ],
+      "answer": "B",
+      "answer_note": "题干问的是函数的返回值。`customFunction(a, b)` 在 b ≥ 0 时把 a 连加 b + 1 次，所以 `customFunction(5, 4)` 返回 (4 + 1) × 5 = 25，选 B。程序打印出来的 625 是 `pow(result, 2)` 的结果，那是「输出」而不是「返回值」，正是 D 项这个干扰项；A 项 5、C 项 250 都不是这条连加链上的值。"
+    },
+    {
+      "qid": "csp-j1-2024-031",
+      "no": 31,
+      "original_no": "31",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "topic:sim"
+      ],
+      "answer": "C",
+      "answer_note": "`customFunction(3, 3)` 的返回值是 (3 + 1) × 3 = 12，main 再把它平方后输出，12² = 144，选 C。A 项 27 = 3³、B 项 81 = 3⁴、D 项 256 = 2⁸ 都不是「先连加、再平方」的结果。"
+    },
+    {
+      "qid": "csp-j1-2024-032",
+      "no": 32,
+      "original_no": "32",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "single_choice",
+      "score": 4,
+      "images": [],
+      "tags": [
+        "topic:sim"
+      ],
+      "answer": "D",
+      "answer_note": "改后每次递归把 a 也减 1：`customFunction(3, 3)` = 3 + customFunction(2, 2) = 3 + 2 + customFunction(1, 1) = 3 + 2 + 1 + customFunction(0, 0)，而 b 为 0 时返回当前的 a（此时 a 已经是 0），所以返回值是 3 + 2 + 1 + 0 = 6，main 再平方输出 6² = 36，选 D。实跑改后的程序，输入 `3 3` 输出 `36`。A 项 9、B 项 16、C 项 25 都比 36 小，对应更少的递归层数。"
+    },
+    {
+      "qid": "csp-j1-2024-033",
+      "no": 33,
+      "original_no": "33",
+      "section": "part3",
+      "group": "完善程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:sim"
+      ],
+      "answer": "A",
+      "answer_note": "① 是枚举的起点。1 是完全平方数（1 = 1 × 1），所以 i 必须从 1 开始试，选 A。若填 2、3、4，输入 1 时上界 ⌊√1⌋ = 1 而起点已经大于上界，循环一次都不执行，会输出 `1 is not a square number`——用 13 个输入实测，填 1、2、3、4 分别错 0、1、2、3 例，只有填 1 全部通过。"
+    },
+    {
+      "qid": "csp-j1-2024-034",
+      "no": 34,
+      "original_no": "34",
+      "section": "part3",
+      "group": "完善程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:math"
+      ],
+      "answer": "B",
+      "answer_note": "② 是循环的上界。要判断 num 是否完全平方数，试到 ⌊√num⌋ 就够：完全平方数的平方根正好落在这个范围内，再往上试只会重复更小的因子。A 项 `(int)floor(sqrt(num))-1` 比 √num 小 1，把 i = √num 这一步漏掉了，7 个完全平方数（1、4、9、16、25、100、10000）会被判成「不是」；C、D 两项拿 `num / 2` 开方，范围与 √num 完全对不上，同样错 7 例。把四个候选逐个代进程序跑 13 个输入，只有 B 全部通过，选 B。",
+      "dispute_note": "卷面上这一段程序的头文件只有 `#include<iostream>` 与 `#include<vector>`，而 ② 的四个候选都要用 `sqrt`、`floor`，这两个函数需要 `<cmath>`，照抄卷面代码是编译不过的（会报 `'sqrt' was not declared in this scope`）。这段代码按卷面原样保留、没有替它补头文件；做判定时是在源文件之外另加一个 `<cmath>` 才编译运行的，20 种填法 20/20 编译成功，其中只有 ② 填 `(int)floor(sqrt(num))` 在 13 个输入下全部通过。读题时自行补上这个头文件即可，不影响选 B。"
+    },
+    {
+      "qid": "csp-j1-2024-035",
+      "no": 35,
+      "original_no": "35",
+      "section": "part3",
+      "group": "完善程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:sim"
+      ],
+      "answer": "D",
+      "answer_note": "③ 是「当前 i 的平方是不是等于 num」这个判断。A 项 `num = 2 * i` 与 C 项 `num = i * i` 用的是赋值号，会把 num 改写掉，后面的比较就全乱了——实跑时输入 2，i = 1 先把 num 变成 2、条件恰好为真，函数就误判「2 是平方数」，这两项各错 6 例；B 项 `num == 2 * i` 比的对象不对，错 7 例。只有 D 项 `num == i * i` 在 13 个输入下全部通过，选 D。"
+    },
+    {
+      "qid": "csp-j1-2024-036",
+      "no": 36,
+      "original_no": "36",
+      "section": "part3",
+      "group": "完善程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:sim"
+      ],
+      "answer": "C",
+      "answer_note": "④ 是条件成立时的返回值：既然 `num == i * i` 已经说明存在 i 使 i 的平方等于 num，就应该返回「是」，选 C。A 项 `num = 2 * i` 在功能上也成立——它是赋值表达式，值就是 `2 * i`，在 bool 语境下非零即为真，与 C 项的 `return true;` 等效（把候选代进去实跑，A 与 C 都是 13 个输入全部通过）；B 项 `num == 2 * i` 错 6 例、D 项 `false` 错 7 例，都会把完全平方数判成「不是」。",
+      "dispute_note": "官方答案在这一题后面注了一句「A 也算正确」：④ 填 A 得到的是 `return num = 2 * i;`，它是赋值表达式，值就是 `2 * i`，在 bool 语境下非零即为真，与 ④ 填 C 的 `return true;` 完全等效。把四个候选分别代进程序（其余空按官方答案）、用 1、2、3、4、8、9、15、16、25、99、100、101、10000 这 13 个输入实跑：A 与 C 都是 13/13 全部通过，B 错 6 例、D 错 7 例，可见这句备注属实。本题按官方首选把答案记作 C，选 A 在功能上同样能通过全部用例。"
+    },
+    {
+      "qid": "csp-j1-2024-037",
+      "no": 37,
+      "original_no": "37",
+      "section": "part3",
+      "group": "完善程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:sim"
+      ],
+      "answer": "D",
+      "answer_note": "⑤ 是循环走完之后的返回值：i 从 1 试到 ⌊√num⌋ 都没有找到满足 `num == i * i` 的 i，说明 num 不是完全平方数，应返回「不是」，选 D。A 项 `num = i * i` 与 C 项 `true` 会把所有数都判成完全平方数（测试里的 6 个非完全平方数全部误判，各错 6 例）；B 项 `num != i * i` 在循环结束时 i 已经越过上界，这个不等式失去意义，同样错 6 例。"
+    },
+    {
+      "qid": "csp-j1-2024-038",
+      "no": 38,
+      "original_no": "38",
+      "section": "part3",
+      "group": "完善程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:divide"
+      ],
+      "answer": "B",
+      "answer_note": "① 是递归的出口：只剩一个盘子时直接把它从 src 挪到 tgt，所以该填 1，选 B。A 项 0 会让 n = 1 时递归到 `dfs(0, …)` 再多做两次移动，输出 3 步而不是 1 步；C 项 2、D 项 3 让 n = 1 时一步都不走（输出 0 步）。把候选代进去检查输出的移动序列，只有填 1 在 n = 1 到 4 时都是合法的 2ⁿ − 1 步汉诺塔解。"
+    },
+    {
+      "qid": "csp-j1-2024-039",
+      "no": 39,
+      "original_no": "39",
+      "section": "part3",
+      "group": "完善程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:divide"
+      ],
+      "answer": "B",
+      "answer_note": "② 是 `move` 的两个参数：只剩一个盘子时要从 src 直接挪到 tgt，所以填 `src, tgt`，选 B。A 项 `src, tmp` 把盘子挪到了中转柱，终态 C 柱是空的（n = 1 就不合法）；C 项 `tmp, tgt` 与 D 项 `tgt, tmp` 的第一步都要从空柱取盘，同样不合法。"
+    },
+    {
+      "qid": "csp-j1-2024-040",
+      "no": 40,
+      "original_no": "40",
+      "section": "part3",
+      "group": "完善程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:divide"
+      ],
+      "answer": "B",
+      "answer_note": "③ 是「把上面 i − 1 个盘子从 src 搬到 tmp」那次递归，三个参数的顺序是起点、中转、终点，要借助 tgt 搬到 tmp，所以填 `src, tgt, tmp`，选 B。A 项 `src, tmp, tgt` 在 n = 2 时第 2 步就把大盘压到了小盘上；C 项 `tgt, tmp, src` 与 D 项 `tgt, src, tmp` 以 tgt（C 柱）为起点，第 1 步就要从空柱取盘。"
+    },
+    {
+      "qid": "csp-j1-2024-041",
+      "no": 41,
+      "original_no": "41",
+      "section": "part3",
+      "group": "完善程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:divide"
+      ],
+      "answer": "B",
+      "answer_note": "④ 是「把那 i − 1 个盘子从中转柱 tmp 搬到目标柱 tgt」那次递归，要借助 src，所以填 `tmp, src, tgt`，选 B。A 项 `src, tmp, tgt` 与 C 项 `src, tgt, tmp` 都以已经空了的 src 柱为起点，n = 2 时第 3 步就要从空柱取盘；D 项 `tgt, src, tmp` 在 n = 2 时第 3 步把大盘压到小盘上。"
+    },
+    {
+      "qid": "csp-j1-2024-042",
+      "no": 42,
+      "original_no": "42",
+      "section": "part3",
+      "group": "完善程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:divide"
+      ],
+      "answer": "C",
+      "answer_note": "⑤ 是第二次递归的规模，它必须比当前规模小一档，填 `i - 1` 时每层递归都处理 i − 1 个盘子，输出才正好是 2ⁿ − 1 步，选 C。实跑四个候选（n 取 1 到 4）：填 `i - 1` 得到 1、3、7、15 步，全部正确；填 1 在 n = 2 时凑巧也是 3 步，但 n = 3 只有 5 步、n = 4 只有 7 步（第二次递归只搬 1 个盘子，盘子一多就搬不完）；填 0 会让 `dfs(0, …)` 碰不到出口 1、参数一路减到负数（实跑 n ≥ 2 时以栈溢出中止，退出码 3221225725）；填 `i` 的参数根本不减小，同样不收敛（实跑在栈溢出前已打出约 86400 行移动）。"
+    }
+  ],
+  "answer_source": {
+    "kind": "official",
+    "from": "题目/csp-j/2024-答案.pdf",
+    "note": "官方答案文件，含文本层，形如「1. C / 2. A / …」，全卷连续编号 42 题，与本题库的全卷连续序号逐位一一对应，无需分节换算。判断题以 √ / × 给出，本库记为 T（正确）/ F（错误）。【卷别】试题卷面与答案表均无 A/B 卷标注，paper_variant 留空。为确认答案表与本卷卷别一致（CSP 曾出现题目相同、选项重排的情况，见手册 06），本卷没有只做抽查，而是把全卷 42 题逐题独立验算：单选 1-15 手算复算；阅读程序 (1)(2)(3) 与完善程序 (1)(2) 的代码按 SPEC §3.6 去掉行号前缀后用 g++ 15.2.0（-std=c++17 -O0）真编译真运行，代入题给输入比对输出（含题目要求的各种「改动后」变体），完善程序两组还把 5 个空 × 4 个候选全部逐一代入试跑，按「判定结果与正解一致 / 汉诺塔移动序列合法」判定唯一正解。42 题结果与官方答案逐题一致，据此确认该答案文件与本卷为同一卷别，不存在选项重排问题。【第 36 题官方备注】答案原文为「36. C (A 也算正确)」，本库 answer 记 C。「A 也算正确」是原卷备注，未据此改动答案：实测把 ④ 填成 A（`num = 2 * i`）后，`return num = 2 * i;` 返回非零值，bool 语境下与 `return true;` 等效，故该选项在功能上确实也成立——备注属实，但官方首选仍是 C。【另注】完善程序 (1) 的原程序只 #include <iostream> / <vector>，而选项用到 sqrt / floor（需 <cmath>），原卷即如此，已照录未补；编译校验时在源文件外补了一个 <cmath> 脚手架，不影响题目内容。"
+  }
+}

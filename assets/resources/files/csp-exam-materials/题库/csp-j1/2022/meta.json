@@ -1,0 +1,802 @@
+{
+  "paper_id": "csp-j1-2022",
+  "title": "2022 CCF 非专业级别软件能力认证第一轮（CSP-J1）入门级 C++语言试题",
+  "exam": "CSP-J1",
+  "year": 2022,
+  "paper_variant": "",
+  "date": "2022-09-18",
+  "duration_minutes": 120,
+  "total_score": 100,
+  "question_count": 44,
+  "source": {
+    "file": "题目/csp-j/2022-试题.pdf",
+    "copy": "题库/csp-j1/2022/2022-试题.pdf",
+    "sha256": "32FEC7CAEC0C6D9155C4F9DB496CDCC356B681397372F620D0A54473C924476F",
+    "pages": 12,
+    "kind": "text",
+    "ocr": false
+  },
+  "converted_at": "2026-09-20",
+  "spec_version": "1.5",
+  "sections": [
+    {
+      "id": "part1",
+      "title": "一、单项选择题",
+      "score": 30,
+      "qids": [
+        "csp-j1-2022-001",
+        "csp-j1-2022-002",
+        "csp-j1-2022-003",
+        "csp-j1-2022-004",
+        "csp-j1-2022-005",
+        "csp-j1-2022-006",
+        "csp-j1-2022-007",
+        "csp-j1-2022-008",
+        "csp-j1-2022-009",
+        "csp-j1-2022-010",
+        "csp-j1-2022-011",
+        "csp-j1-2022-012",
+        "csp-j1-2022-013",
+        "csp-j1-2022-014",
+        "csp-j1-2022-015"
+      ]
+    },
+    {
+      "id": "part2",
+      "title": "二、阅读程序",
+      "score": 40,
+      "qids": [
+        "csp-j1-2022-016",
+        "csp-j1-2022-017",
+        "csp-j1-2022-018",
+        "csp-j1-2022-019",
+        "csp-j1-2022-020",
+        "csp-j1-2022-021",
+        "csp-j1-2022-022",
+        "csp-j1-2022-023",
+        "csp-j1-2022-024",
+        "csp-j1-2022-025",
+        "csp-j1-2022-026",
+        "csp-j1-2022-027",
+        "csp-j1-2022-028",
+        "csp-j1-2022-029",
+        "csp-j1-2022-030",
+        "csp-j1-2022-031",
+        "csp-j1-2022-032",
+        "csp-j1-2022-033",
+        "csp-j1-2022-034"
+      ]
+    },
+    {
+      "id": "part3",
+      "title": "三、完善程序",
+      "score": 30,
+      "qids": [
+        "csp-j1-2022-035",
+        "csp-j1-2022-036",
+        "csp-j1-2022-037",
+        "csp-j1-2022-038",
+        "csp-j1-2022-039",
+        "csp-j1-2022-040",
+        "csp-j1-2022-041",
+        "csp-j1-2022-042",
+        "csp-j1-2022-043",
+        "csp-j1-2022-044"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "name": "阅读程序(1)",
+      "section": "part2",
+      "program_note": "这段程序读入两个不超过 15 的自然数 x、y，用位运算把它们各自 4 个二进制位「打散」后交织成一份，输出合成结果 z。前两行把 x 的 4 位展开到第 6、4、2、0 位上，中间两行对 y 做同样的展开，最后 `z = x | y << 1` 让 x 占据偶数位、y 占据奇数位。输入是两个数字，输出是一个整数。理解本组题要抓住两点：一是全程只用到 `|`、`<<`、`&` 三种位运算，把 4 位输入代进去就能算出结果（x = 13、y = 8 得 209）；二是 `unsigned` 加不加、`short` 还是 `char`，直接决定了 `cin` 读进来的是数字还是字符，这是这一组判断题的关键所在。"
+    },
+    {
+      "name": "阅读程序(2)",
+      "section": "part2",
+      "program_note": "这段程序读入两个正整数 n、m，用两种写法求同一个值：`f` 是直接递归，`g` 是填表递推，两行输出分别是它们的结果。它求解的是经典的「m 个鸡蛋、n 层楼最少要试几次」问题：转移式表示在第 i 层试一次，碎了就用剩下的 m−1 个鸡蛋往下试、没碎就用 m 个鸡蛋往上试，取最坏情况之后再挑最优的 i；边界是 m = 1 时返回 n、n = 0 时返回 0。理解本组题要抓住两点：一是 f 与 g 是同一递推的两种写法，结果必然相同；二是 f 没有记忆化，调用规模随 n 指数增长（n = 20 就要约 105 万次循环），算大一些的输入只能靠 g 或者给它加上记忆化。"
+    },
+    {
+      "name": "阅读程序(3)",
+      "section": "part2",
+      "program_note": "这段程序读入 n、k，用两种方法求 n 的平方根：`solve1` 在区间 [0, n] 上二分，返回满足 mid² ≤ n 的最大整数，也就是 ⌊√n⌋；`solve2` 以 x = 1 为初值做 k 次牛顿迭代 `x = (x + n / x) / 2`，逐步逼近 √n。最后输出迭代结果，以及 `ans * ans == n` 的比较结果——相等输出 1，否则输出 0。理解本组题要抓住两点：一是二分每轮把范围折半、牛顿迭代每轮让精度翻倍，合起来是 O(log n + k)；二是第二个输出只表示「ans 的平方是否恰好等于 n」，取 n = 2、k = 1 就能看到它是 0（此时 ans = 1.5），只有 n 是完全平方数且迭代到位时才为 1。"
+    },
+    {
+      "name": "完善程序(1)",
+      "section": "part3",
+      "program_note": "这段程序读入正整数 n，按从小到大的顺序打印它的所有正因数。做法是先在 1 到 ⌊√n⌋ 之间枚举较小的那些因数，用 `fac` 数组存下来并输出；如果 n 是完全平方数，⌊√n⌋ 这个「中间」因数会被枚举的边界漏掉，需要单独补印一次；最后把 `fac` 从后往前扫一遍，用 `n / fac[k]` 输出与每个小因数配对的大因数，正好拼成升序的完整因数表。理解本题要抓住两点：两个循环分工不同，前一个印小于 √n 的因数、后一个用除法配出大于 √n 的因数；而循环结束时 i 已经越过 ⌊√n⌋，所以平方数的判据要写成 `i * i == n`，补印的也正是这个 i。"
+    },
+    {
+      "name": "完善程序(2)",
+      "section": "part3",
+      "program_note": "这段程序实现的是洪水填充：给定 8 × 8 的字符图像、起始像素和新颜色，把与起始像素同色且沿上、下、左、右四个方向连通的整块区域全部换成新颜色。做法是广度优先搜索：先把起点放进队列，每次取出一个格子就检查它的四个邻居，凡是坐标合法、颜色仍等于起始颜色、并且还不是新颜色的格子就染成新颜色并放进队列，直到队列为空。`prev_color` 一开始就记下起点的颜色，作为整块区域的判据；颜色一旦改掉，格子就不会再入队。理解本题要抓住两点：一是判据始终是起始颜色，而不是当前格子的颜色；二是起点本身要在开始时就染色，并且放进队列的必须是刚刚染色的那个邻居。"
+    }
+  ],
+  "questions": [
+    {
+      "qid": "csp-j1-2022-001",
+      "no": 1,
+      "original_no": "1",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:lang"
+      ],
+      "answer": "A",
+      "answer_note": "面向对象的三要素是封装、继承、多态。`printf` 是 C 标准库函数，靠函数名与参数直接调用，与类和对象无关，所以它不涉及面向对象特性，选 A。B 项调用用户定义的类成员函数体现封装，C 项构造 `class` 或 `struct` 是在定义类，D 项由同一基类派生出多个类属于继承与多态，三者都用到了面向对象特性。"
+    },
+    {
+      "qid": "csp-j1-2022-002",
+      "no": 2,
+      "original_no": "2",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:ds"
+      ],
+      "answer": "C",
+      "answer_note": "进栈顺序固定为 6、5、4、3、2、1，出栈必须后进先出。C 项第一个输出是 3，说明 6、5、4、3 已按序进栈，此时栈里从顶到底为 3、4、5、6；弹出 3、再弹出 4 之后，6 被 5 压在下面，不可能先于 5 出栈，故 C 项非法。A、B、D 三项都能安排出合法的进出栈交错，例如 D 项：6、5、4、3、2 依次进栈，弹出 2、3、4，再让 1 进栈并弹出，最后弹出 5、6。"
+    },
+    {
+      "qid": "csp-j1-2022-003",
+      "no": 3,
+      "original_no": "3",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:lang"
+      ],
+      "answer": "D",
+      "answer_note": "`p = q;` 是把 q 里保存的地址赋给 p，赋值后 p 与 q 都指向 y 的地址，x、y 里的值都没有改动，选 D。A 项要写成 `*p = *q`（或 `x = y`）、B 项要写成 `*q = *p`、C 项要写成 `q = p`，这三句与题面代码的赋值方向都不同。"
+    },
+    {
+      "qid": "csp-j1-2022-004",
+      "no": 4,
+      "original_no": "4",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:ds"
+      ],
+      "answer": "C",
+      "answer_note": "数组在定义时长度固定，链表靠指针把结点串起来、结点可以随时申请和释放，所以「数组大小固定、链表大小可动态调整」才是两者的区别，选 C。A 项数组同样可以排序；B 项能存多少信息取决于元素类型，不是数组与链表的区别；A、B 都不成立，D 项「以上均正确」自然也不成立。"
+    },
+    {
+      "qid": "csp-j1-2022-005",
+      "no": 5,
+      "original_no": "5",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:ds"
+      ],
+      "answer": "B",
+      "answer_note": "队列 Q 的出队顺序是 e2、e4、e3、e6、e5、e1，而队列先进先出，所以数据离开栈 S 的顺序也必须是这一串。按它模拟：e1 先留在栈里；e2 进栈后立即出栈（栈深 2）；e3、e4 依次进栈后先出 e4、再出 e3，此时 e1 在栈底、e3 又必须排在 e4 之后，栈里必有 e1、e3、e4 三个（栈深 3）；e5、e6 进栈后先出 e6、再出 e5；最后 e1 出栈。最大栈深为 3，故容量至少 3，选 B。容量 2 做不到——弹出 e4 的那一刻 e1 与 e3 都还必须压在栈里。"
+    },
+    {
+      "qid": "csp-j1-2022-006",
+      "no": 6,
+      "original_no": "6",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:ds"
+      ],
+      "answer": "B",
+      "answer_note": "前缀表达式相当于对表达式树做「根—左—右」的先根遍历：`a+(b-c)*d` 的根是 `+`，左子树是 `a`，右子树是 `*`；`*` 的左子树是 `b-c`（前缀写作 `-bc`）、右子树是 `d`。按先根顺序写出来就是 `+a*-bcd`，选 B。C 项 `abc-d*+` 是后缀表达式，D 项 `abc-+d` 缺了运算符、不是一个完整的表达式。"
+    },
+    {
+      "qid": "csp-j1-2022-007",
+      "no": 7,
+      "original_no": "7",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:tree"
+      ],
+      "answer": "B",
+      "answer_note": "哈夫曼编码的做法是每轮取出频率最小的两个结点合并。5 个字母的频率从小到大是 a 10、b 15、d 16、e 29、c 30：先合并 a、b 得 25；再合并 d(16) 与 25 得 41；再合并 e(29) 与 c(30) 得 59；最后 41 与 59 合成根。d 只参与了两层合并，编码长度为 2，选 B。a、b 的编码长度是 3，c、e 是 2，可见 A 项的 1 位没有字母取到，C、D 两项与合并过程唯一这一事实不符。"
+    },
+    {
+      "qid": "csp-j1-2022-008",
+      "no": 8,
+      "original_no": "8",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:tree"
+      ],
+      "answer": "C",
+      "answer_note": "根结点存在下标 1 时，下标 i 的父结点是 ⌊i/2⌋、左孩子是 2i、右孩子是 2i+1。下标 9 的父结点是 ⌊9/2⌋ = 4，右孩子是 2 × 9 + 1 = 19；兄弟结点与它同父，4 的另一个孩子是 2 × 4 = 8，所以兄弟结点在第 8 个位置，选 C。若误按下标 0 起算，得到的右孩子会是 18 之类，于是错选 A、B、D。"
+    },
+    {
+      "qid": "csp-j1-2022-009",
+      "no": 9,
+      "original_no": "9",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "feat:formula",
+        "topic:graph"
+      ],
+      "answer": "A",
+      "answer_note": "邻接矩阵里每条弧对应一个非零元素，问题就变成「N 个顶点的有向连通图最少需要几条弧」。把 N 个顶点连成一条单向链 v1→v2→…→vN 就已经连通，只用了 N−1 条弧，而弧数不可能再少（少于 N−1 条边无法连起 N 个顶点），故至少 N−1 个非零元素，选 A。B、C 两项都比它多，D 项的 N² 是矩阵的元素总数，只有任意两点之间都有弧时才取到。"
+    },
+    {
+      "qid": "csp-j1-2022-010",
+      "no": 10,
+      "original_no": "10",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:ds"
+      ],
+      "answer": "D",
+      "answer_note": "用两个栈可以模拟出一个队列（一个专门负责进、一个专门负责出），所以「无法用栈实现队列」这个说法不恰当，选 D。A 项深度优先遍历靠栈回溯、C 项广度优先搜索靠队列逐层扩展，都是标准结论；B 项的后进先出与先进先出正是栈和队列的定义。"
+    },
+    {
+      "qid": "csp-j1-2022-011",
+      "no": 11,
+      "original_no": "11",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:ds"
+      ],
+      "answer": "D",
+      "answer_note": "在 p 之后插入 s，要先把 s 的两条指针接好，再改 p 和原来那个后继的指针。D 项的顺序是：`s->next=p->next` 把 s 的后继接到原后继，`p->next->prev=s` 让原后继回指 s，`s->prev=p` 让 s 的前驱指向 p，最后 `p->next=s` 才动 p 的后继——每一步读到的 `p->next` 都还是原值，所以不会丢链。A、B 项都先把 `p->next` 改成了 s，再去算 `s->next=p->next`，结果 s 指向自己成为自环；C 项最后一句 `p->next->prev=s` 里的 `p->next` 已经就是 s，等于把 `s->prev` 覆盖成它自己。"
+    },
+    {
+      "qid": "csp-j1-2022-012",
+      "no": 12,
+      "original_no": "12",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:sort"
+      ],
+      "answer": "B",
+      "answer_note": "简单选择排序每一轮都把最小元素与待排区的首位交换，这个交换会把前面已经就位、且与最小值相等的元素甩到后面，可能改变相等元素的先后，所以它不稳定，选 B。冒泡、简单插入、归并三种排序的常见实现都不会打乱相等元素的相对次序，都是稳定的。"
+    },
+    {
+      "qid": "csp-j1-2022-013",
+      "no": 13,
+      "original_no": "13",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:number"
+      ],
+      "answer": "C",
+      "answer_note": "八进制按位权展开：3 × 8¹ + 2 × 8⁰ + 1 × 8⁻¹ = 24 + 2 + 0.125 = 26.125，选 C。A 项把整数部分的 3 当成了 8⁰；B 项整数部分只按 8¹ 算了 24、小数位又算错；D 项整数部分对，但把小数位的 1 当成了 0.25。"
+    },
+    {
+      "qid": "csp-j1-2022-014",
+      "no": 14,
+      "original_no": "14",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:string"
+      ],
+      "answer": "A",
+      "answer_note": "按长度枚举再按内容去重：长度 1 有 `a`、`b`、`c` 3 个；长度 2 有 `ab`、`bc`、`ca` 3 个；长度 3 有 `abc`、`bca`、`cab` 3 个；长度 4 有 `abca`、`bcab` 2 个；长度 5 是 `abcab` 1 个，合计 3 + 3 + 3 + 2 + 1 = 12，选 A。换个算法核对：长度为 5 的串共有 5 × 6 ÷ 2 = 15 个子串（重复计数），其中 `a`、`b`、`ab` 各重复出现一次，15 − 3 = 12——B、C、D 三项正是少减了一到三次重复。"
+    },
+    {
+      "qid": "csp-j1-2022-015",
+      "no": 15,
+      "original_no": "15",
+      "section": "part1",
+      "group": null,
+      "type": "single_choice",
+      "score": 2,
+      "images": [],
+      "tags": [
+        "topic:lang"
+      ],
+      "answer": "B",
+      "answer_note": "递归是在函数内部直接或间接地调用自身，把原问题化归为同类型的更小问题来求解，选 B。A 项说的是「允许用多组参数调用函数」，C 项说的是面向对象的语言模型，D 项说的是高级语言到机器代码的转换，都与递归无关。"
+    },
+    {
+      "qid": "csp-j1-2022-016",
+      "no": 16,
+      "original_no": "16",
+      "section": "part2",
+      "group": "阅读程序(1)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "feat:lineref",
+        "topic:lang"
+      ],
+      "answer": "T",
+      "answer_note": "输入的 x、y 都是不超过 15 的自然数，中间结果最大也只有 255，既不出现负值也不会超出 16 位整数的范围，所以 `unsigned` 加不加都会落在同一个值上，程序行为不变。实跑核对：删掉第 7、13 行的 `unsigned`、其余一字不动重新编译，在 x、y 取 0 到 15 的全部 256 组输入上逐组比较输出，差异 0 组。故主张成立，填 √。"
+    },
+    {
+      "qid": "csp-j1-2022-017",
+      "no": 17,
+      "original_no": "17",
+      "section": "part2",
+      "group": "阅读程序(1)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "feat:lineref",
+        "topic:lang"
+      ],
+      "answer": "F",
+      "answer_note": "`short` 改成 `char` 之后，`cin >> x >> y` 读的就不再是整数而是单个字符。实跑输入 `13 8`：原程序读到 x = 13、y = 8；改后读到的是字符 `'1'`（x 变成 49）与 `'3'`（y 变成 51），输出完全不同。同样在 0 到 15 的 256 组输入上比对，256 组输出全部不同。故主张不成立，填 ×。"
+    },
+    {
+      "qid": "csp-j1-2022-018",
+      "no": 18,
+      "original_no": "18",
+      "section": "part2",
+      "group": "阅读程序(1)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:bit"
+      ],
+      "answer": "F",
+      "answer_note": "程序的输出会随输入变化，并不恒为 0。实跑：输入 `2 2` 输出 `12`，输入 `13 8` 输出 `209`，输入 `15 15` 输出 `255`。故主张不成立，填 ×。"
+    },
+    {
+      "qid": "csp-j1-2022-019",
+      "no": 19,
+      "original_no": "19",
+      "section": "part2",
+      "group": "阅读程序(1)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:bit"
+      ],
+      "answer": "F",
+      "answer_note": "实跑输入 `2 2`，输出是 `12`，不是题面说的 `10`。故主张不成立，填 ×。"
+    },
+    {
+      "qid": "csp-j1-2022-020",
+      "no": 20,
+      "original_no": "20",
+      "section": "part2",
+      "group": "阅读程序(1)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:bit"
+      ],
+      "answer": "F",
+      "answer_note": "同一个输入 `2 2` 的输出是 `12`，不是题面说的 `59`。故主张不成立，填 ×。"
+    },
+    {
+      "qid": "csp-j1-2022-021",
+      "no": 21,
+      "original_no": "21",
+      "section": "part2",
+      "group": "阅读程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "topic:bit"
+      ],
+      "answer": "B",
+      "answer_note": "两次位运算把 4 位输入 a b c d 重新摆放成：`a` 在第 6 位、`b` 在第 4 位、`c` 在第 2 位、`d` 在第 0 位；x 占偶数列，y 做同样的展开后左移一位占奇数列，最后按位或合成 z。代入 x = 13（二进制 `1101`）得 64 + 16 + 1 = 81，y = 8（二进制 `1000`）展开得 64、左移一位是 128，z = 81 | 128 = 209，实跑输出 `209`，选 B。A 项的 0、C 项的 197、D 项的 226 都与这两步位运算的结果不符。"
+    },
+    {
+      "qid": "csp-j1-2022-022",
+      "no": 22,
+      "original_no": "22",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "feat:lineref",
+        "topic:dp"
+      ],
+      "answer": "F",
+      "answer_note": "第 19 行的 `min` 在每轮循环里执行一次，它的执行次数就是 f 展开后的调用规模。实跑（在 `min` 所在循环体的入口打点计数）输入 `7 3` 得 448 次，而不是题面说的 449 次。故主张不成立，填 ×。"
+    },
+    {
+      "qid": "csp-j1-2022-023",
+      "no": 23,
+      "original_no": "23",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:dp"
+      ],
+      "answer": "T",
+      "answer_note": "`g` 是 f 的填表递推：边界 h[n][1] = n、h[0][m] = 0 与 f 的两个 return 一致，转移式 `max(h[i-k][j], h[k-1][j-1]) + 1` 与 f 里的 `max(f(n-i,m), f(i-1,m-1)) + 1` 完全同形，取最小也相同，所以两者的输出必然一样。实跑：n 取 1 到 40、m 取 1 到 12 的全表上 f 与 g 逐点相同，无一处不同；把 f 加上记忆化（递推式一字不改）后与 g 在 `100 100` 上同为 7。故主张成立，填 √。"
+    },
+    {
+      "qid": "csp-j1-2022-024",
+      "no": 24,
+      "original_no": "24",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:dp"
+      ],
+      "answer": "T",
+      "answer_note": "f 的第一句 `if (m == 1) return n;` 就是这条结论：m = 1 时无论 n 是多少都直接返回 n；g 里的 h[i][1] = i 也把第一行固定成 n。实跑 n 取 1 到 40、m 取 1 时，输出的第一行恒为 n。故主张成立，填 √。"
+    },
+    {
+      "qid": "csp-j1-2022-025",
+      "no": 25,
+      "original_no": "25",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:formula",
+        "topic:complexity"
+      ],
+      "answer": "C",
+      "answer_note": "直接数 g 的循环层数：外层 i 从 1 到 n，中层 j 从 2 到 m，最内层 k 从 1 到 i。最内层语句的执行次数是 Σ(m−1) × i（i 从 1 到 n 求和），约为 (m−1)n²/2，所以时间复杂度是 O(n²m)，选 C。A 项的 O(n^{3/2}m)、B 项的 O(nm)、D 项的 O(nm²) 都把最内层对 k 的求和当成了常数，或者把 n、m 的幂次配错了。"
+    },
+    {
+      "qid": "csp-j1-2022-026",
+      "no": 26,
+      "original_no": "26",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "topic:dp"
+      ],
+      "answer": "C",
+      "answer_note": "实跑输入 `20 2`，输出的第一行是 `6`，选 C。这就是「2 个鸡蛋、20 层楼最少试几次」：按 `min(max(f(n-i,m), f(i-1,m-1))) + 1` 递推得 f(20,2) = 6（2 个鸡蛋试 6 次最多能覆盖 1 + 2 + … + 6 = 21 层，试 5 次只能覆盖 15 层）。A 项的 4 对应 10 层、B 项的 5 对应 15 层，都不够覆盖 20 层；D 项的 20 是每层都试一遍的最坏情况。"
+    },
+    {
+      "qid": "csp-j1-2022-027",
+      "no": 27,
+      "original_no": "27",
+      "section": "part2",
+      "group": "阅读程序(2)",
+      "type": "single_choice",
+      "score": 4,
+      "images": [],
+      "tags": [
+        "topic:dp"
+      ],
+      "answer": "B",
+      "answer_note": "先把 f 加记忆化（递推式一字不改，且在 n ≤ 22、m ≤ 4 上与 f 逐点相同）再算，得 f(100,100) = 7，g(100,100) 也是 7，选 B。m 足够大时答案就是 ⌈log₂(n+1)⌉：试 7 次最多能区分 2⁷ − 1 = 127 层，≥ 100；试 6 次只能区分 63 层，不够。A 项的 6、C 项的 8、D 项的 9 都与这个下界不符。"
+    },
+    {
+      "qid": "csp-j1-2022-028",
+      "no": 28,
+      "original_no": "28",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "feat:formula",
+        "topic:complexity"
+      ],
+      "answer": "T",
+      "answer_note": "`solve1` 在区间 [0, n] 上做二分，每轮把范围折半，循环约 ⌈log₂ n⌉ 次；`solve2` 固定做 k 次牛顿迭代，每次只用常数次四则运算。两者合起来的时间复杂度就是 O(log n + k)，故主张成立，填 √。"
+    },
+    {
+      "qid": "csp-j1-2022-029",
+      "no": 29,
+      "original_no": "29",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:bisect"
+      ],
+      "answer": "T",
+      "answer_note": "`solve1` 返回满足 mid² ≤ n 的最大整数，n = 9801 时它就是 ⌊√9801⌋ = 99；`solve2` 以 99 为初值，迭代一次得 (99 + 9801 / 99) / 2 = (99 + 99) / 2 = 99，仍是不动点。实跑输入 `9801 1` 输出 `99 1`，第一个数正是 99。故主张成立，填 √。"
+    },
+    {
+      "qid": "csp-j1-2022-030",
+      "no": 30,
+      "original_no": "30",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "topic:bisect"
+      ],
+      "answer": "F",
+      "answer_note": "第二个输出是 `ans * ans == n` 的比较结果，只有 ans 恰好等于 √n 时才是 1。取 n = 2、k = 1：`solve1` 得 1，`solve2` 迭代一次得 (1 + 2 / 1) / 2 = 1.5，1.5² = 2.25 ≠ 2，第二个数是 0；把 k 加大到 4 得到 1.41421，平方仍然不等于 2。在 n 取 0 到 47000、k 取 0 到 12 的扫描里，有 377023 组输入的第二个数不是 1。故主张不成立，填 ×。"
+    },
+    {
+      "qid": "csp-j1-2022-031",
+      "no": 31,
+      "original_no": "31",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "true_false",
+      "score": 1.5,
+      "images": [],
+      "tags": [
+        "feat:lineref",
+        "topic:lang"
+      ],
+      "answer": "F",
+      "answer_note": "题面限定 n 不超过 47000，此时二分里的 mid 最大取到 23500（n = 47000 时），`mid * mid` 最大是 23500² = 552250000，而 32 位有符号整数的上界是 2147483647，两者差了近四倍，根本不会溢出——要让第一次迭代就溢出，n 至少要 92682。故主张不成立，填 ×。"
+    },
+    {
+      "qid": "csp-j1-2022-032",
+      "no": 32,
+      "original_no": "32",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "topic:bisect"
+      ],
+      "answer": "C",
+      "answer_note": "输入 `2 1` 时，`solve1` 二分得 1，`solve2` 以 1 为初值迭代 1 次：x = (1 + 2 / 1) / 2 = 1.5。实跑输出第一个数是 `1.5`，选 C。A 项的 1 是 `solve1` 的返回值（一次迭代都没做），B 项的 1.414 要迭代两次以上才接近，D 项的 2 与迭代结果相差甚远。"
+    },
+    {
+      "qid": "csp-j1-2022-033",
+      "no": 33,
+      "original_no": "33",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "topic:bisect"
+      ],
+      "answer": "B",
+      "answer_note": "输入 `3 10` 时 `solve1` 得 ⌊√3⌋ = 1，`solve2` 从 1 出发迭代 10 次。实跑输出 `1.73205`，与 B 项的 1.732 只差万分之五，选 B。A 项 1.7 差 0.032，C 项 1.75 差 0.018，D 项 2 差 0.27，都明显更远。"
+    },
+    {
+      "qid": "csp-j1-2022-034",
+      "no": 34,
+      "original_no": "34",
+      "section": "part2",
+      "group": "阅读程序(3)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "topic:bisect"
+      ],
+      "answer": "A",
+      "answer_note": "256 是完全平方数，`solve1` 返回 16，`solve2` 的初值恰好就是精确的平方根，迭代中 (16 + 256 / 16) / 2 = 16 始终保持不变，所以输出第一个数恰好等于 16。实跑输入 `256 11` 输出 `16 1`，选 A。B、C 两项描述的偏差在这种情形下不会出现，D 项「都有可能」与迭代停在这个不动点的事实不符。"
+    },
+    {
+      "qid": "csp-j1-2022-035",
+      "no": 35,
+      "original_no": "35",
+      "section": "part3",
+      "group": "完善程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:sim"
+      ],
+      "answer": "A",
+      "answer_note": "① 是枚举因数时的判据。i 从 1 遍历到 ⌊√n⌋，只有能整除 n 的 i 才是 n 的因数，所以填 `n % i == 0`，选 A。B 项把余数写成 1、C 项与 D 项把除数写成 `i-1`，判据的对象都错了：分别把它们填进去编译运行，n = 2 时都输出空行，而正确答案应输出 `1 2`，15 组测试输入里各错 14 组。"
+    },
+    {
+      "qid": "csp-j1-2022-036",
+      "no": 36,
+      "original_no": "36",
+      "section": "part3",
+      "group": "完善程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:sim"
+      ],
+      "answer": "B",
+      "answer_note": "第一个循环只把小因数收进 `fac`，紧接着的循环负责把它们打印出来，所以 ② 输出的就是因数本身，填 `fac[k]`，选 B。A 项 `n / fac[k]` 是「与 fac[k] 配对的另一个因数」，要留到最后一个循环才用；C 项 `fac[k]-1` 与 D 项 `n / (fac[k]-1)` 都不是 n 的因数。把 B 以外的候选填进去运行，n = 2 时分别得到 `2 2`、`0 2` 和空行，都不是应有的 `1 2`。"
+    },
+    {
+      "qid": "csp-j1-2022-037",
+      "no": 37,
+      "original_no": "37",
+      "section": "part3",
+      "group": "完善程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:sim"
+      ],
+      "answer": "C",
+      "answer_note": "循环结束时 i 是第一个满足 i² ≥ n 的数，③ 要判断 n 是不是完全平方数——只有 `i * i` 恰好等于 n 时，√n 才是一个整数因数，需要在两个循环之间单独补印一次，所以填 `i * i == n`，选 C。A 项 `(i-1)*(i-1) == n`、B 项 `(i-1)*i == n`、D 项 `i*(i-1) == n` 填进去运行后，n = 1 时都输出空行（应输出 `1`），15 组测试里分别错 8、11、11 组。"
+    },
+    {
+      "qid": "csp-j1-2022-038",
+      "no": 38,
+      "original_no": "38",
+      "section": "part3",
+      "group": "完善程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:sim"
+      ],
+      "answer": "D",
+      "answer_note": "④ 要补印的正是那个被漏掉的平方根：n 是完全平方数时，循环结束时的 i 就等于 ⌊√n⌋，把它（选项里写作 `i`）填在这里，正好输出这个因数，选 D。其余三项都不是这个数：A 项 `n-i` 与 C 项 `i-1` 在 n = 1 时输出 `0`（应为 `1`），B 项 `n-i+1` 在 n = 4 时输出 `1 3 4`（应为 `1 2 4`）。填好之后实跑 n = 1、2、4、36、100、997 等，输出的都是 n 的全部正因数升序。",
+      "dispute_note": "原卷 ④ 处的选项 D 印的是大写 `I`（无点的竖画，与同一份卷子里小写 `i` 的带点写法不同），照这个字面把它填进程序会编译不过：`error: 'I' was not declared in this scope`——也就是说，按字面填 D 是一个连编译都过不了的选项，必须把它认作变量名 `i` 才能得到正确输出。本卷答案仍取 D：四个候选里只有它（读作 `i` 之后）能打印出 n 的全部正因数升序，与答案源一致；A、B、C 三项在 n = 1 或 n = 4 上都会给出错误输出。"
+    },
+    {
+      "qid": "csp-j1-2022-039",
+      "no": 39,
+      "original_no": "39",
+      "section": "part3",
+      "group": "完善程序(1)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:sim"
+      ],
+      "answer": "A",
+      "answer_note": "最后一步要把与已枚举的小因数配对的大因数从大到小输出。fac[k] 是 n 的一个因数，与它配对的另一个因数就是 n / fac[k]，所以 ⑤ 填 `n / fac[k]`，选 A。B 项 `fac[k]` 会把小数又打印一遍，C 项 `fac[k]-1` 与 D 项 `n / (fac[k]-1)` 都不是 n 的因数。把 B、C、D 填进去运行，n = 2 时分别得到 `1 1`、`1 0` 和空行，都不是应有的 `1 2`。"
+    },
+    {
+      "qid": "csp-j1-2022-040",
+      "no": 40,
+      "original_no": "40",
+      "section": "part3",
+      "group": "完善程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:search"
+      ],
+      "answer": "A",
+      "answer_note": "洪水填充只把与起始像素同色的连通区换成新颜色，所以 `is_valid` 要求待扩展的格子颜色仍等于起始颜色，① 填 `image[r][c] == prev_color`，选 A。B 项 `!= prev_color` 与 D 项 `!= new_color` 会把与起点不同色的格子也涂掉，实跑整幅图被涂成 `y`；C 项要求颜色等于新颜色，而初始图中没有任何格子是 `y`，实跑只有起点被改动，与题面注释里印的期望输出不符。"
+    },
+    {
+      "qid": "csp-j1-2022-041",
+      "no": 41,
+      "original_no": "41",
+      "section": "part3",
+      "group": "完善程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:search"
+      ],
+      "answer": "B",
+      "answer_note": "② 紧跟在 `prev_color = image[cur.r][cur.c]` 之后，作用是把起始格子本身也涂成新颜色，填 `image[cur.r][cur.c] = new_color`，选 B。A 项改的是 `(cur.r+1, cur.c)`、C 项改的是 `(cur.r, cur.c+1)`，都不是起点格；D 项把起点格写回它自己的原色，等于什么都没做。只有 B 能在任何输入下都把起点格涂对——D 项在卷面这幅图上也能凑出期望输出，原因见下面的争议栏。",
+      "dispute_note": "卷面给的那一幅图与起点 (4, 4) 分辨不出 ② 处的 B 与 D：把 D 项 `image[cur.r][cur.c] = prev_color` 填进去编译运行，输出的 8 × 8 图像与题面注释里印的期望输出逐格相同。原因是起点格虽然在 ② 处没被染色，但它仍是原来的颜色，等它作为邻居被再次访问时会被 ④ 补染成新颜色，结果就看不出差别。换一幅起点格上下左右四邻都不是原色的图再跑，D 立刻露馅：起点格停留在原色 `b`，而正解 B 会把它涂成 `y`。本卷答案取 B——B 是任何输入下都正确的写法，与答案源一致，D 只是在这一幅图上撞对了。"
+    },
+    {
+      "qid": "csp-j1-2022-042",
+      "no": 42,
+      "original_no": "42",
+      "section": "part3",
+      "group": "完善程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:search"
+      ],
+      "answer": "C",
+      "answer_note": "③ 要给出当前格子的四个邻居，另外三个已经写成上 `Point(pt.r-1, pt.c)`、右 `Point(pt.r, pt.c+1)`、左 `Point(pt.r, pt.c-1)`，所以剩下的必然是下 `Point(pt.r+1, pt.c)`，选 C。A 项 `Point(pt.r, pt.c)` 是格子自己，会把自己重新入队；B 项 `Point(pt.r, pt.c+1)` 与右邻居重复；D 项 `Point(pt.r+1, pt.c+1)` 走的是对角，会漏掉正下方的格子。用一幅竖向长条图实跑，填 D 得到的第一列是 `y b b b g g g g`，而正解应把第一列的前四个格子都涂成 `y`。",
+      "dispute_note": "与 ② 处同理，③ 处的 C 与 D 在卷面这幅图与起点 (4, 4) 上也分辨不出来：把 D 项 `Point(pt.r+1, pt.c+1)` 填进去编译运行，输出同样与题面注释里印的期望输出逐格相同，因为这幅图里起点所在的连通区恰好也能被对角步绕到同一批格子。换成一块只有向下走才能到达下面几行的竖向长条图再跑，D 就漏格：第一列输出为 `y`、`b`、`b`、`b`、`g`…，而正解 C 会把第一列前四行全部涂成 `y`。本卷答案取 C——四个方向里只有它是下邻居，既不与另外三个重复也不越位，与答案源一致。"
+    },
+    {
+      "qid": "csp-j1-2022-043",
+      "no": 43,
+      "original_no": "43",
+      "section": "part3",
+      "group": "完善程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:search"
+      ],
+      "answer": "D",
+      "answer_note": "④ 是染色语句：把当前被判定为与起点同色连通的格子改成新颜色，填 `image[p.r][p.c] = new_color`，选 D。A 项 `prev_color = image[p.r][p.c]` 把判据的基准改成了当前格子的颜色，C 项 `image[p.r][p.c] = prev_color` 是原地不动，这两项都会让搜索停不下来——实跑都 5 秒超时；B 项 `new_color = image[p.r][p.c]` 改的是目标颜色而不是图像，实跑输出与正确答案不符。"
+    },
+    {
+      "qid": "csp-j1-2022-044",
+      "no": 44,
+      "original_no": "44",
+      "section": "part3",
+      "group": "完善程序(2)",
+      "type": "single_choice",
+      "score": 3,
+      "images": [],
+      "tags": [
+        "feat:circnum",
+        "topic:search"
+      ],
+      "answer": "A",
+      "answer_note": "⑤ 要把刚染好色的格子放回队列，好让搜索继续向外扩展，填 `queue.push(p)`，选 A。B 项 `queue.push(pt)` 放回的是当前正在处理的格子，会重复处理；C 项 `queue.push(cur)` 放回的是起点；D 项 `Point(ROWS, COLS)` 是图像外的坐标，会被 `is_valid` 直接挡掉。三项实跑的输出都与题面注释里印的期望输出不符。"
+    }
+  ],
+  "answer_source": {
+    "kind": "mapped",
+    "from": "题目/csp-j/2022-答案.pdf",
+    "note": "来源是网页抓取的答案表（首尾有 `=== ↓ junior ↓ ===` / `=== ↑ junior ↑ ===` 两行标记，非官方版式），表内只有序号与字母，没有选项正文，因此无法做「按选项内容」的字面映射。核对方式是：① 表格的 44 个序号与卷面题数、分节构成逐项对齐（1-15 单选 / 16-21 阅读(1) / 22-27 阅读(2) / 28-34 阅读(3) / 35-39 完善(1) / 40-44 完善(2)）；② 44 题全部独立验算，其中 6 个程序（3 组阅读程序 + 2 组完善程序的候选填空）用 g++ 真编译真运行，单选 1-15 逐题手算。验算结果与来源表 44/44 一致，未发现冲突。判断题 T=正确 F=错误。本卷无 A/B 卷标注。"
+  }
+}

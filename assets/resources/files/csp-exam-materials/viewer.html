@@ -1,0 +1,2396 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>试题库 · 浏览与对比</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#fff; --line:#e3e6ea; --line2:#eef1f4;
+    --ink:#1f2328; --ink2:#57606a; --ink3:#8b949e;
+    --accent:#2f6feb; --accent-bg:#eaf1ff;
+    --ok:#1a7f37; --warn:#9a6700; --err:#cf222e;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --content-zoom:1;          /* 由字号控件调节，见「字号缩放」一节 */
+    --code-lh:1.13;            /* 代码行高，约为正文行高(1.62)的 70%，一屏能多看几行 */
+  }
+
+  /* ---------- 字号缩放 ----------
+     只放大题目内容，顶栏与筛选栏保持紧凑，投影时学生的可见区域最大。
+     用 zoom 而非改字体大小：一处生效，代码块、插图、间距一起等比放大，
+     不会出现文字变大但行高错乱的情况。 */
+  /* 用 id 而非类名，避免和别的 .md 元素撞上导致缩放叠加 */
+  #list, #mdPane{ zoom: var(--content-zoom) }
+  *{box-sizing:border-box}
+  /* hidden 必须真的隐藏：.dirbadge 之类设了 display 的元素会盖掉浏览器
+     默认的 [hidden]{display:none}，导致「隐藏」的徽章以空壳形式露出来 */
+  [hidden]{display:none !important}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:14px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  }
+  button{font:inherit;color:inherit}
+
+  /* ---------- 顶栏 ---------- */
+  header{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:10px 18px; background:var(--panel); border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:30;
+  }
+  .brand{font-weight:600; letter-spacing:.3px}
+  .brand small{color:var(--ink3); font-weight:400; margin-left:8px}
+  .tabs{display:flex; gap:2px; margin-left:auto}
+  .tabs button{
+    padding:6px 14px; border:1px solid transparent; background:transparent;
+    border-radius:7px; cursor:pointer; color:var(--ink2);
+  }
+  .tabs button:hover{background:var(--line2)}
+  .tabs button[aria-selected="true"]{background:var(--accent-bg); color:var(--accent); font-weight:500}
+
+  .btn{
+    padding:6px 13px; border:1px solid var(--line); background:var(--panel);
+    border-radius:7px; cursor:pointer;
+  }
+  .btn:hover{border-color:#c9ced6; background:#fafbfc}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+  .btn.primary:hover{background:#2660d6}
+  .btn:disabled{opacity:.45; cursor:not-allowed}
+  .dirbadge{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:var(--mono); font-size:11.5px; color:var(--ok);
+    background:#eefbf1; border:1px solid #c3e9cf; border-radius:999px; padding:2px 11px;
+  }
+  .dirbadge::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+  .dirbadge.off{color:var(--ink3); background:var(--line2); border-color:var(--line)}
+  .dirbadge.off::before{background:var(--ink3)}
+  .scan-hint{color:var(--warn);font-size:12px;line-height:1.4}
+  /* 字号控件：教学投屏用，A− / 百分比 / A+ */
+  .fontctl{
+    display:flex; align-items:center;
+    border:1px solid var(--line); border-radius:7px; overflow:hidden;
+  }
+  .fontctl button{
+    padding:4px 10px; border:0; background:transparent; cursor:pointer;
+    font-size:13px; line-height:1.45;
+  }
+  .fontctl button:hover:not(:disabled){background:var(--line2)}
+  .fontctl button:disabled{opacity:.3; cursor:not-allowed}
+  .fontctl .fval{
+    font-size:11.5px; color:var(--ink3); font-family:var(--mono);
+    min-width:42px; text-align:center; user-select:none;
+  }
+
+  main{height:calc(100% - 53px); overflow:hidden}
+  .page{height:100%; overflow:auto; display:none}
+  .page.active{display:block}
+
+  /* ---------- 载入区 ---------- */
+  .drop{
+    margin:26px auto; max-width:760px; padding:44px 30px; text-align:center;
+    border:2px dashed #cbd2da; border-radius:14px; background:var(--panel);
+    transition:.15s;
+  }
+  .drop.hot{border-color:var(--accent); background:var(--accent-bg)}
+  .drop h2{margin:0 0 8px; font-size:17px}
+  .drop p{margin:6px 0; color:var(--ink2)}
+  .drop .hint{color:var(--ink3); font-size:13px; margin-top:16px; line-height:1.9}
+  .drop code{font-family:var(--mono); background:var(--line2); padding:1px 6px; border-radius:4px; font-size:12.5px}
+
+  .loaded{margin:20px auto; max-width:1100px; padding:0 20px}
+
+  /* ---------- 浏览 ---------- */
+  .wrap{max-width:1180px; margin:0 auto; padding:18px 20px 60px}
+
+  .stats{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px}
+  .stat{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:10px 16px; min-width:104px;
+  }
+  .stat b{display:block; font-size:21px; line-height:1.3}
+  .stat span{color:var(--ink3); font-size:12.5px}
+
+  /* ---------- 筛选栏 ----------
+     现在只有这一条**高度恒定**的常驻状态栏，筛选条件本身在它下面的常驻筛选区里改，
+     没有任何开合。这一点是关键：早先把面板做成「可收起」时，收起会让文档变矮 281px，
+     Chrome 的滚动锚定为了稳住视野内内容会把 scrollTop 往回补，于是
+     「收起 → 回到顶部 → 又展开」来回震荡，往下滑不动；而且展开的筛选区带 overflow:auto，
+     滚轮会被它吃掉。文档高度恒定之后，这两个问题一起不存在。 */
+  .filters{
+    position:sticky; top:0; z-index:20; margin-bottom:16px;
+    background:var(--panel); border:1px solid var(--line); border-radius:11px;
+  }
+  .fhead{display:flex; align-items:center; gap:10px; padding:8px 14px}
+  .fsum{
+    flex:1; min-width:0; font-size:12.5px; color:var(--ink3);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .fsum b{color:var(--accent); font-weight:600}
+  .frow{display:flex; align-items:center; gap:9px; flex-wrap:wrap; padding:4px 0}
+  .frow > label{color:var(--ink3); font-size:12.5px; min-width:52px}
+  /* 常驻筛选区：从筛选弹层里搬出来的四块（试卷/题型/知识点/搜索），各自独立、不再折叠。
+     刻意**不做 sticky**——吸顶块一高，同一屏能读的内容就少；而且 sticky 元素高度变化
+     会引发滚动锚定震荡（见 .filters 上方那段注释）。它们随页面滚动，
+     当前筛了什么由筛选栏里的摘要一直兜着。 */
+  .fblocks{
+    background:var(--panel); border:1px solid var(--line); border-radius:11px;
+    padding:7px 16px 11px; margin-bottom:16px;
+    /* 组别 / 试卷 / 题型 / 知识点 排一行，宽度不够就自动折行（flex 换行即可，
+       不做媒体查询）；搜索独占一行，见下面那条 100%。 */
+    display:flex; flex-wrap:wrap; align-items:center;
+    gap:2px 20px;
+  }
+  .fblocks .frow{padding:0}
+  .fblocks .frow[data-ui="browse.filters.search-row"]{flex:1 1 100%}
+  /* 组别与试卷用下拉：两者都是单选，一个下拉比一排 chip 省地方 */
+  .fblocks select{
+    padding:5px 10px; border:1px solid var(--line); background:var(--panel);
+    border-radius:7px; font-size:12.5px; color:var(--ink2); cursor:pointer;
+    max-width:min(240px, 30vw);
+  }
+  .fblocks select:hover{border-color:#c9ced6}
+  /* 多选下拉（题型 / 知识点）：按钮上写清已选了什么，选项在绝对定位的面板里。
+     面板**不改变文档高度**，所以展开/收起不会引发滚动锚定（同筛选栏那条教训）。 */
+  .dd{position:relative}
+  .ddbtn{
+    display:flex; align-items:center; gap:8px; padding:5px 10px;
+    border:1px solid var(--line); background:var(--panel); border-radius:7px;
+    font:inherit; font-size:12.5px; color:var(--ink2); cursor:pointer;
+    min-width:190px; max-width:min(360px, 34vw); text-align:left;
+  }
+  .ddbtn:hover{border-color:#c9ced6}
+  .ddtext{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ddbtn .caret{
+    flex:none; width:0; height:0; border-left:4px solid transparent;
+    border-right:4px solid transparent; border-top:5px solid currentColor;
+    transition:transform .15s;
+  }
+  .dd.open .ddbtn .caret{transform:rotate(180deg)}
+  .ddpanel{
+    display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:30;
+    background:var(--panel); border:1px solid var(--line); border-radius:9px;
+    padding:6px; box-shadow:0 14px 30px rgba(0,0,0,.13);
+    max-height:min(52vh, 420px); overflow:auto; min-width:210px;
+  }
+  .dd.open .ddpanel{display:block}
+  .ddopt{
+    display:flex; align-items:center; gap:8px; padding:5px 8px;
+    border-radius:6px; font-size:12.5px; color:var(--ink2);
+    cursor:pointer; white-space:nowrap;
+  }
+  .ddopt:hover{background:#f2f4f8}
+  .ddopt input{margin:0; cursor:pointer}
+  .ddopt .n{margin-left:auto; padding-left:12px; opacity:.6; font-size:11.5px}
+  .chips{display:flex; gap:6px; flex-wrap:wrap}
+  .chip{
+    padding:3px 11px; border:1px solid var(--line); background:var(--panel);
+    border-radius:999px; cursor:pointer; font-size:12.5px; color:var(--ink2);
+  }
+  .chip:hover{border-color:#c9ced6}
+  .chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#fff}
+  .chip .n{opacity:.6; margin-left:5px; font-size:11.5px}
+  #q{flex:1; min-width:190px; padding:6px 11px; border:1px solid var(--line);
+     border-radius:7px; font:inherit; outline:none}
+  #q:focus{border-color:var(--accent)}
+
+  .qcard{
+    background:var(--panel); border:1px solid var(--line); border-radius:11px;
+    padding:15px 18px; margin-bottom:11px;
+    /* 全库一次能排出 600 张卡，屏幕外的卡不必参与布局与绘制。
+       contain-intrinsic-size 是屏幕外卡片的占位高度：给得准，滚动条长度才不跳。
+       210px 是全库实测的平均卡高（600 张卡合计约 12.6 万 px）；
+       前面的 auto 让浏览器「记住」已渲染卡片的真实高度，滚回去不再重排。 */
+    content-visibility:auto;
+    contain-intrinsic-size:auto 210px;
+  }
+  .qhead{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:9px}
+  .qno{font-weight:600; font-size:15px}
+  .badge{
+    font-size:11.5px; padding:1px 8px; border-radius:999px;
+    background:var(--line2); color:var(--ink2); border:1px solid var(--line);
+  }
+  .badge.tf{background:#fff4e5; border-color:#ffd8a8; color:#9a6700}
+  .badge.sc{background:#eaf1ff; border-color:#c7dbff; color:#2f6feb}
+  .badge.topic{background:#eefbf1; border-color:#c3e9cf; color:#1a7f37}
+  .badge.feat{background:#f6f0ff; border-color:#ddd0f5; color:#6e40c9}
+  .qid{font-family:var(--mono); font-size:11.5px; color:var(--ink3); margin-left:auto}
+  .stem{margin:2px 0 9px}
+  .stem p{margin:.5em 0}
+  /* ---------- 选项作答 ----------
+     data-state 由 refreshQuiz() 维护：
+       空        未作答
+       chosen    已选、尚未揭示
+       correct   揭示后确认是正确答案
+       wrong     揭示后确认选错了 */
+  .opts{margin:0; padding:0; list-style:none}
+  .opts li{
+    position:relative; padding:5px 30px 5px 11px; margin:2px 0;
+    border:1px solid transparent; border-radius:8px;
+    color:var(--ink); cursor:pointer; transition:background .12s, border-color .12s;
+  }
+  .opts li b{color:var(--ink2); font-weight:600; margin-right:6px}
+  .opts li:hover{border-color:var(--line); background:#fafbfc}
+  .opts li[data-state="chosen"]{border-color:var(--accent); background:var(--accent-bg)}
+  .opts li[data-state="chosen"] b{color:var(--accent)}
+  .opts li[data-state="correct"]{border-color:#8fd3a3; background:#eefbf1}
+  .opts li[data-state="wrong"]{border-color:#f0b4b4; background:#fff1f1}
+  .opts li[data-state="correct"]::after,
+  .opts li[data-state="wrong"]::after{
+    position:absolute; right:11px; top:50%; transform:translateY(-50%);
+    font-size:13px; font-weight:700;
+  }
+  .opts li[data-state="correct"]::after{content:"✓"; color:var(--ok)}
+  .opts li[data-state="wrong"]::after{content:"✕"; color:var(--err)}
+
+  .verdict{
+    display:inline-block; margin:9px 0 0; padding:4px 11px;
+    border-radius:7px; font-size:12.5px;
+  }
+  .verdict[data-v="right"]{background:#eefbf1; color:var(--ok)}
+  .verdict[data-v="wrong"]{background:#fff1f1; color:var(--err)}
+  .verdict[data-v="none"]{background:var(--line2); color:var(--ink3)}
+
+  /* ---------- 题解 ----------
+     由 meta.json 派生（见 SPEC 3.9），默认**折叠**：答案直接摊在卡片上，
+     浏览时就做不成题了。点「题解」才展开。 */
+  .sol{margin:9px 0 0}
+  .solbtn{
+    padding:3px 11px; font:inherit; font-size:12.5px; color:var(--ink2);
+    border:1px solid var(--line); background:var(--panel);
+    border-radius:7px; cursor:pointer;
+  }
+  .solbtn:hover{border-color:var(--accent); color:var(--accent)}
+  .solbody{
+    margin:7px 0 0; padding:9px 12px; border-left:3px solid var(--line);
+    background:#fbfcfd; border-radius:0 7px 7px 0; font-size:13px;
+  }
+  .solans{font-weight:600; color:var(--ink)}
+  .solnote{margin-top:5px; color:var(--ink2)}
+  .solnote p{margin:.4em 0}
+  /* 争议另起一段、带警示色左边条：学员要先看到结论，再看争议说明 */
+  .soldisp{
+    margin-top:7px; padding:6px 10px; color:#8a5300;
+    border-left:3px solid #f0b429; background:#fff9ec;
+    border-radius:0 6px 6px 0;
+  }
+  .soldisp p{margin:.4em 0}
+
+  /* ---------- 答题模式切换 ---------- */
+  .quizctl{display:flex; margin-left:auto;
+           border:1px solid var(--line); border-radius:7px; overflow:hidden}
+  .quizctl button{
+    padding:4px 12px; border:0; background:transparent; cursor:pointer;
+    font-size:12.5px; color:var(--ink2);
+  }
+  .quizctl button:hover{background:var(--line2)}
+  .quizctl button[aria-pressed="true"]{background:var(--accent); color:#fff}
+  .quizstat{
+    display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink3);
+    white-space:nowrap;
+  }
+  .quizstat b{color:var(--ink); font-weight:600}
+  .quizstat .ok{color:var(--ok)}
+  .quizstat .bad{color:var(--err)}
+  .qimg{max-width:100%; margin:10px 0; border:1px solid var(--line); border-radius:8px; background:#fff}
+  .grp{
+    margin:22px 0 11px; padding:7px 13px; background:#f0f3f7;
+    border-left:3px solid var(--accent); border-radius:0 7px 7px 0;
+    font-weight:600; color:var(--ink2); font-size:13px;
+  }
+  .grp2{
+    margin:18px 0 9px; font-size:13.5px; font-weight:600; color:var(--accent);
+    display:flex; align-items:center; gap:10px;
+  }
+  .grp3{
+    margin:15px 0 8px; font-size:13px; font-weight:600; color:var(--ink2);
+    padding-left:9px; border-left:3px solid #cbd5e1;
+  }
+  .qpre{margin:0 0 13px}
+  .qpre > div{color:var(--ink2); font-size:13px}
+  .qpre > div p{margin:.4em 0}
+  /* 组级「程序说明」：整段代码在求解什么，长在代码块之后、分栏之前 */
+  .qpre > .qnote{
+    padding:9px 12px; color:var(--ink2);
+    border-left:3px solid var(--accent); background:#f4f7fb;
+    border-radius:0 7px 7px 0;
+  }
+  .qpre pre{
+    background:#f6f8fa; border:1px solid var(--line); border-radius:9px;
+    padding:12px 14px; overflow:auto; margin:0 0 10px;
+  }
+  .qpre pre code{font-family:var(--mono); font-size:12.6px;
+                 line-height:var(--code-lh); white-space:pre}
+  .sec{margin:30px 0 12px; font-size:17px; font-weight:600; padding-bottom:7px; border-bottom:2px solid var(--line)}
+  .sec:first-child{margin-top:6px}
+  .secdesc{color:var(--ink2); font-size:13px; margin:-4px 0 14px; padding-left:11px; border-left:3px solid var(--line)}
+
+  /* ---------- 对比 ---------- */
+  .cmp{height:100%; display:flex; flex-direction:column}
+  .cmpbar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:9px 16px; background:var(--panel); border-bottom:1px solid var(--line);
+  }
+  select{font:inherit; padding:5px 9px; border:1px solid var(--line); border-radius:7px; background:var(--panel); outline:none}
+  .cmpbody{flex:1; display:flex; min-height:0; gap:1px; background:var(--line)}
+  .pane{flex:1; min-width:0; background:var(--panel); display:flex; flex-direction:column}
+  .pane > .ph{
+    padding:6px 14px; font-size:12px; color:var(--ink3); border-bottom:1px solid var(--line2);
+    display:flex; align-items:center; gap:9px; background:#fbfcfd; flex:none;
+  }
+  .pane > .pb{flex:1; overflow:auto; min-height:0}
+  /* .md 只给 Markdown 内容本身用，**不要与对比页的栏容器复用类名**：
+     复用时 .md 的样式与 zoom 会同时命中两层，字号缩放会叠成 4 倍。 */
+  .md{padding:20px 30px 70px; max-width:900px}
+  #pdfFrame{width:100%; height:100%; border:0; background:#525659}
+  .cmpbody.mk-only .pane.pdf{display:none}
+  .cmpbody.pdf-only .pane.mk{display:none}
+
+  /* ---------- 界面开关 ----------
+     配合脚本顶部的 UI 配置使用。用 display:none 而不是删元素——
+     数据、筛选、导出一概不受影响，随时可以再打开。 */
+  body.ui-hide-topic-tags  [data-ui="qcard.tag.topic"] { display:none }
+  body.ui-hide-feat-tags   [data-ui="qcard.tag.feat"]  { display:none }
+  body.ui-hide-group-badge [data-ui="qcard.head.group"]{ display:none }
+  body.ui-hide-qid         [data-ui="qcard.qid"]       { display:none }
+  body.ui-hide-solution    [data-ui="qcard.solution"]  { display:none }
+
+  /* ---------- 题面展开（阅读程序 / 完善程序）----------
+     这两类题的程序与小题是分开的：程序在上、题目在下，读代码时看不见选项。
+     展开后左题面、右题目各自独立滚动，对答案不必来回滚。 */
+  .expand{
+    margin-left:auto; display:inline-flex; align-items:center; gap:6px;
+    padding:3px 11px; font-size:12px; color:var(--ink2);
+    border:1px solid var(--line); background:var(--panel);
+    border-radius:7px; cursor:pointer; white-space:nowrap;
+  }
+  .expand:hover{border-color:var(--accent); color:var(--accent)}
+  .expand .ico{
+    width:9px; height:9px; border:1.5px solid currentColor; border-radius:2px;
+    position:relative; flex:none;
+  }
+  .expand .ico::after{
+    content:""; position:absolute; left:2.5px; top:2.5px;
+    width:9px; height:9px; border:1.5px solid currentColor;
+    border-radius:2px; background:var(--panel);
+  }
+
+  .overlay{
+    position:fixed; inset:0; z-index:200; padding:24px;
+    background:rgba(20,24,30,.55); display:flex;
+  }
+  .overlay[hidden]{display:none}
+  .ovcard{
+    flex:1; display:flex; flex-direction:column; min-width:0;
+    background:var(--panel); border-radius:14px; overflow:hidden;
+    box-shadow:0 18px 50px rgba(0,0,0,.3);
+  }
+  .ovhead{
+    display:flex; align-items:center; gap:12px; padding:11px 18px;
+    border-bottom:1px solid var(--line); flex:none;
+  }
+  .ovtitle{font-size:15px; font-weight:600}
+  .ovmeta{font-size:12.5px; color:var(--ink3)}
+  .ovclose{
+    margin-left:auto; padding:5px 14px; border:1px solid var(--line);
+    background:var(--panel); border-radius:7px; cursor:pointer; font-size:13px;
+  }
+  .ovclose:hover{border-color:#c9ced6; background:#fafbfc}
+  .ovbody{flex:1; display:flex; min-height:0}
+  .ovleft,.ovright{overflow:auto; min-width:0; padding:18px 22px 70px;
+                   zoom:var(--content-zoom)}
+  .ovleft{flex:0 0 58%}
+  .ovright{flex:1; border-left:1px solid var(--line); background:#fbfcfd}
+  .ovdiv{flex:0 0 6px; cursor:col-resize; background:var(--line2)}
+  .ovdiv:hover{background:var(--accent)}
+  body.ov-open{overflow:hidden}
+
+  /* ---------- Markdown 渲染 ---------- */
+  .md h1{font-size:21px; margin:.4em 0 .7em; line-height:1.4}
+  .md h2{font-size:17.5px; margin:1.7em 0 .7em; padding-bottom:6px; border-bottom:2px solid var(--line)}
+  .md h3{font-size:15.5px; margin:1.5em 0 .55em; color:var(--ink2)}
+  .md h4{font-size:14.5px; margin:1.3em 0 .5em; color:var(--ink2)}
+  .md h5{font-size:14px; margin:1.2em 0 .45em; font-weight:600}
+  /* 正文首行缩进两字，与原卷排版一致——不缩进的话段落层次看不出来。
+     只给正文段落，标题、列表、选项、代码都不缩进。 */
+  .md p, .qpre > div p{text-indent:2em}
+  .md p{margin:.7em 0}
+  .md ul,.md ol{margin:.6em 0; padding-left:1.7em}
+  .md li{margin:.22em 0}
+  .md blockquote{
+    margin:.9em 0; padding:8px 15px; background:#f7f9fb;
+    border-left:3px solid #cbd5e1; color:var(--ink2); border-radius:0 6px 6px 0;
+  }
+  .md blockquote p{margin:.3em 0}
+  .md pre{
+    background:#f6f8fa; border:1px solid var(--line); border-radius:9px;
+    padding:13px 15px; overflow:auto; margin:1em 0;
+  }
+  .md pre code{font-family:var(--mono); font-size:12.8px;
+               line-height:var(--code-lh); white-space:pre}
+  .md code{font-family:var(--mono); font-size:12.8px; background:#eff1f4; padding:1px 5px; border-radius:4px}
+  .md pre code{background:none; padding:0}
+  .md img{max-width:100%; border:1px solid var(--line); border-radius:8px; margin:10px 0; background:#fff}
+  .md hr{border:0; border-top:1px solid var(--line); margin:1.8em 0}
+  .md table{border-collapse:collapse; margin:1em 0; width:100%}
+  .md th,.md td{border:1px solid var(--line); padding:6px 11px; text-align:left}
+  .md th{background:#f6f8fa; font-weight:600}
+  .math{font-family:"Cambria Math",Cambria,"Times New Roman",serif; white-space:nowrap}
+  .math .op{font-style:normal; padding:0 .12em}
+  .math sup,.math sub{font-size:.72em; line-height:0}
+  .math .frac{
+    display:inline-flex; flex-direction:column; vertical-align:-.5em;
+    text-align:center; font-size:.82em; line-height:1.12; margin:0 .18em;
+  }
+  .math .frac > span:first-child{border-bottom:1px solid currentColor; padding:0 .22em}
+  .math .rad{border-top:1px solid currentColor; padding:0 .1em}
+  .mathblock{
+    text-align:center; margin:1em 0; padding:10px;
+    font-family:"Cambria Math",Cambria,"Times New Roman",serif; font-size:1.05em;
+    background:#f7f9fb; border:1px solid var(--line2); border-radius:8px; overflow-x:auto;
+  }
+  /* 题块注释渲染成小标签，不干扰阅读 */
+  .qmeta{
+    display:inline-flex; gap:7px; flex-wrap:wrap; align-items:center;
+    font-family:var(--mono); font-size:11px; color:var(--ink3);
+    background:#f7f9fb; border:1px solid var(--line2); border-radius:6px;
+    padding:2px 9px; margin:2px 0 8px;
+  }
+  .qmeta .k{color:#a8b0b9}
+
+  .empty{color:var(--ink3); text-align:center; padding:70px 20px}
+  .toast{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%);
+    background:#24292f; color:#fff; padding:9px 18px; border-radius:9px;
+    font-size:13px; opacity:0; pointer-events:none; transition:.25s; z-index:99;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- ==== 区域：顶栏 ==== 标识见 UI-MAP.md#顶栏 -->
+<header data-ui="header">
+  <div class="brand" data-ui="header.brand">试题库<small>浏览 · 对比校阅</small></div>
+  <span class="dirbadge" id="dirBadge" data-ui="header.dir-badge" hidden></span>
+  <button class="btn" id="rescanBtn" data-ui="header.rescan" hidden>重新加载</button>
+  <button class="btn" id="changeDirBtn" type="button" hidden>切换文件夹</button>
+  <span class="scan-hint" id="scanHint" role="status" hidden></span>
+  <div class="quizctl" data-ui="header.quiz-mode">
+    <button class="qm" data-mode="normal" data-ui="header.quiz-mode.normal"
+            aria-pressed="true" title="点选项即时判对错">普通模式</button>
+    <button class="qm" data-mode="exam" data-ui="header.quiz-mode.exam"
+            aria-pressed="false" title="先作答，提交后统一出结果">考试模式</button>
+  </div>
+  <div class="fontctl" data-ui="header.font-size">
+    <button class="fs-down" data-ui="header.font-size.down" title="缩小字号">A−</button>
+    <span class="fval" data-ui="header.font-size.value">100%</span>
+    <button class="fs-up" data-ui="header.font-size.up" title="放大字号">A+</button>
+  </div>
+  <div class="tabs" id="tabs" data-ui="header.tabs">
+    <button data-tab="browse" data-ui="header.tab.browse" aria-selected="true">题目浏览</button>
+    <button data-tab="compare" data-ui="header.tab.compare" aria-selected="false">对比查看</button>
+  </div>
+</header>
+
+<main>
+  <!-- ==== 区域：题目浏览 ==== -->
+  <section class="page active" id="page-browse">
+
+    <!-- 区域：导入引导 -->
+    <div id="importer" data-ui="import">
+      <div class="drop" id="drop" data-ui="import.drop">
+        <h2 id="dropTitle" data-ui="import.title">正在加载在线题库</h2>
+        <p id="dropMsg" data-ui="import.msg">正在读取题库索引与试卷数据，请稍候……</p>
+        <p style="margin-top:14px" data-ui="import.actions">
+          <button class="btn primary" id="pick" data-ui="import.pick" hidden>重新加载</button>
+          <button class="btn" id="pickFile" data-ui="import.pick-file" hidden>改用文件选择</button>
+        </p>
+        <input type="file" id="dirInput" webkitdirectory directory multiple hidden>
+        <input type="file" id="fileInput" accept=".md" multiple hidden>
+        <div class="hint" id="dropHint" data-ui="import.hint">
+          页面会直接读取同目录下的静态题库文件，题面载入后即可筛选、作答和对比校阅。<br>
+          图片与 PDF 按需加载，不会在启动时下载整套资料。
+        </div>
+      </div>
+    </div>
+
+    <!-- 区域：浏览主体，内容由 renderBrowse() 生成 -->
+    <div class="wrap" id="browseWrap" data-ui="browse" hidden></div>
+  </section>
+
+  <!-- ==== 区域：对比查看 ==== 内容由 renderCompare() 生成 -->
+  <section class="page" id="page-compare" data-ui="compare">
+    <div class="cmp" id="cmpRoot"></div>
+  </section>
+</main>
+
+<!-- ==== 区域：题面浮层 ==== 内容由 openGroupOverlay() 填充 -->
+<div class="overlay" id="groupOverlay" data-ui="overlay" hidden>
+  <div class="ovcard" data-ui="overlay.card">
+    <div class="ovhead" data-ui="overlay.head">
+      <span class="ovtitle" data-ui="overlay.title"></span>
+      <span class="ovmeta" data-ui="overlay.meta"></span>
+      <!-- 浮层盖住了顶栏，字号控件得在这里再来一套，不然展开后调不了 -->
+      <div class="fontctl" data-ui="overlay.font-size">
+        <button class="fs-down" data-ui="overlay.font-size.down" title="缩小字号">A−</button>
+        <span class="fval" data-ui="overlay.font-size.value">100%</span>
+        <button class="fs-up" data-ui="overlay.font-size.up" title="放大字号">A+</button>
+      </div>
+      <button class="ovclose" id="ovClose" data-ui="overlay.close">✕ 关闭</button>
+    </div>
+    <div class="ovbody" data-ui="overlay.body">
+      <div class="ovleft" data-ui="overlay.material"></div>
+      <div class="ovdiv" data-ui="overlay.divider" title="拖动调整宽度"></div>
+      <div class="ovright" data-ui="overlay.questions"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* =========================================================================
+   0. 界面开关
+   -------------------------------------------------------------------------
+   想统一隐藏/显示某类元素，改这里的一个布尔值即可，**不要在模板里删元素**。
+   每个开关对应一个加在 <body> 上的类，对应样式见 CSS 的「界面开关」一节。
+
+   隐藏 ≠ 移除：元素仍在 DOM 里，数据、筛选、导出都不受影响。
+   完整标识对照见 UI-MAP.md。
+   ========================================================================= */
+const UI = {
+  showTopicTags:  true,    // 题目卡片上的考点标签（如「组合计数」）
+  showFeatTags:   true,    // 题目卡片上的内容特征标签（如「配图」「行号引用」）
+  showGroupBadge: true,    // 卡片上的大题组徽章（如「阅读程序(1)」）
+  showQid:        true,    // 卡片右侧的 qid
+  showSolution:   true,    // 题目卡片上的题解区（见 SPEC 3.9）
+};
+
+const UI_CLASS = {
+  showTopicTags:  "ui-hide-topic-tags",
+  showFeatTags:   "ui-hide-feat-tags",
+  showGroupBadge: "ui-hide-group-badge",
+  showQid:        "ui-hide-qid",
+  showSolution:   "ui-hide-solution",
+};
+
+function applyUiFlags(){
+  for (const [key, cls] of Object.entries(UI_CLASS)){
+    document.body.classList.toggle(cls, !UI[key]);
+  }
+}
+
+/* =========================================================================
+   1. 工具
+   ========================================================================= */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+function esc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function toast(msg){
+  const t = $("#toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 2200);
+}
+const dirOf  = p => p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
+const baseOf = p => p.slice(p.lastIndexOf("/") + 1);
+
+/* TAG_LABELS:BEGIN —— 由 tools/gen_tags.py 从 TAGS.md 生成，请勿手改 */
+const TAG_LABEL = {
+  "feat:circnum": "填空位",
+  "feat:figure": "配图",
+  "feat:formula": "公式",
+  "feat:lineref": "行号引用",
+  "feat:table": "表格",
+  "topic:basics": "计算机基础与常识",
+  "topic:bisect": "二分查找与二分答案",
+  "topic:bit": "位运算",
+  "topic:combinatorics": "组合计数",
+  "topic:complexity": "复杂度分析",
+  "topic:divide": "分治",
+  "topic:dp": "动态规划",
+  "topic:ds": "数据结构",
+  "topic:graph": "图论",
+  "topic:greedy": "贪心",
+  "topic:lang": "语言基础与语法",
+  "topic:math": "初等数学与代数",
+  "topic:number": "进制与数论",
+  "topic:prob": "概率与期望",
+  "topic:search": "搜索与回溯",
+  "topic:sim": "模拟与枚举",
+  "topic:sort": "排序",
+  "topic:string": "字符串",
+  "topic:tree": "树与二叉树",
+};
+/* TAG_LABELS:END */
+
+/** 标签 -> 中文显示名；词表里查不到就回退到去掉前缀的原文 */
+const tagLabel = code => TAG_LABEL[code] || code.replace(/^(topic|feat):/, "");
+
+/* =========================================================================
+   2. 解析：以 paper.md 为主要数据依据
+   ========================================================================= */
+
+/** 拆出 YAML front matter */
+function splitFrontMatter(text){
+  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+  if (!m) return { meta:{}, body:text };
+  const meta = {};
+  for (const line of m[1].split(/\r?\n/)){
+    const i = line.indexOf(":");
+    if (i > 0 && !line.trim().startsWith("#")){
+      meta[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+    }
+  }
+  return { meta, body: text.slice(m[0].length) };
+}
+
+const RE_H      = /^(#{1,6})\s+(.*?)\s*$/;
+// 两个捕获组缺一不可：m[1]=井号个数（判层级），m[2]=题号
+const RE_QHEAD  = /^(#{3,5})\s*第\s*(\d+)\s*题\s*$/;
+const RE_GROUP  = /^<!--\s*group:\s*(.+?)\s*-->\s*$/;
+// 注意：必须把 "qid:" 一起捕获，否则首段没有键名，qid 会解析成空
+const RE_QID    = /^<!--\s*(qid:[^>]*?)\s*-->\s*$/;
+// 题解块首行（SPEC 3.9）
+const RE_SOLHEAD = /^>\s*\*\*题解\*\*\s*$/;
+// 组级「程序说明」首行（SPEC 3.9 的组级部分，长在组内代码块之后）
+const RE_NOTEHEAD = /^>\s*\*\*程序说明\*\*\s*$/;
+
+/**
+ * 把题解块从题目正文里剥离到 `q.solution`（见 SPEC 3.9）。
+ *
+ * 题解块写在题干末尾、全是 `> ` 开头的行。若不剥离，它会留在 q.lines 里被
+ * splitBody() 当成普通文字渲染进题干（选项下面多出「> **题解**」几行）。
+ * 识别：从匹配 `^>\s*\*\*题解\*\*\s*$` 的那行起，连续的全部 `>` 行即题解块。
+ * 没有这一行就不当题解——宁可当题干显示，也不要凭空吞掉内容。
+ *
+ * v2 起块里最多三段：`答案：` / `解释：` / `争议：`（顺序固定）。解释与争议
+ * 都收进 q.solution，同样**不要**留在 q.lines 里。
+ */
+function extractSolution(q){
+  const lines = q.lines;
+  const k = lines.findIndex(l => RE_SOLHEAD.test(l));
+  if (k < 0) return;
+  let m = k;
+  while (m < lines.length && lines[m].startsWith(">")) m++;
+  // 题解块之后只应剩空行（validate.py 强制）。万一还有内容就留在 q.lines 里，
+  // 至少不会被悄悄丢掉。
+  q.lines = [...lines.slice(0, k), ...lines.slice(m)];
+  const rows = lines.slice(k, m).map(x => x.replace(/^>\s?/, ""));
+  const ai = rows.findIndex(r => r.startsWith("答案："));
+  const ni = rows.findIndex(r => r.startsWith("解释："));
+  const di = rows.findIndex(r => r.startsWith("争议："));
+  // 一段的正文 = 它的首行去掉前缀 + 到下一段之前的所有续行
+  const seg = at => {
+    if (at < 0) return null;
+    const rest = [ni, di].filter(x => x > at);
+    const end = rest.length ? Math.min(...rest) : rows.length;
+    return [rows[at].slice(3), ...rows.slice(at + 1, end)].join("\n").trim();
+  };
+  q.solution = {
+    raw: rows.join("\n"),
+    answer: ai < 0 ? null : rows[ai].slice(3).trim(),
+    note: seg(ni),
+    dispute: seg(di),
+  };
+}
+
+/**
+ * 扫描 paper.md，建立完整结构模型：
+ *   试卷 → 节(##) → 大题组(###) → 分栏(####) → 题目(###/#####)
+ *
+ * 关键：**不是所有内容都属于题目**。代码块、提示、`#### 判断题` 这类小标题
+ * 都长在题目之外，必须各归其位。早先只认「题目」一种结构，这些内容就掉进了
+ * 上一道题的正文里——表现为代码整段消失、`#### 选择题` 被当普通文字渲染出来。
+ */
+function parsePaper(mdText){
+  const { meta: fm, body } = splitFrontMatter(mdText);
+  const lines = body.split(/\r?\n/);
+  const sections = [];
+  let sec = null, blk = null, sub = null, q = null, pendingHeading = "";
+
+  const newSub = title => {
+    if (!blk) return null;
+    sub = { title, pre: [], questions: [] };
+    blk.subs.push(sub);
+    return sub;
+  };
+  const newBlock = group => {
+    blk = { group, heading: pendingHeading, pre: [], subs: [] };
+    pendingHeading = "";
+    if (sec) sec.blocks.push(blk);
+    sub = null;
+    newSub("");                       // 默认分栏，供没有 #### 小标题的组使用
+    return blk;
+  };
+
+  for (const line of lines){
+    let m;
+
+    // 题目：第一节用 ###，第二、三节用 #####
+    if ((m = RE_QHEAD.exec(line))){
+      if (!sec) continue;
+      if (!blk) newBlock("");
+      if (!sub) newSub("");
+      q = { no:+m[2], level:m[1].length, group: blk.group, section: sec, lines: [] };
+      sub.questions.push(q);
+      continue;
+    }
+
+    // 题块注释：qid/type/score/images/tags
+    if ((m = RE_QID.exec(line))){
+      if (q){
+        const f = {};
+        for (const part of m[1].split("|")){
+          const i = part.indexOf(":");
+          if (i > 0) f[part.slice(0, i).trim()] = part.slice(i + 1).trim();
+        }
+        q.qid    = f.qid || "";
+        q.type   = f.type || "";
+        q.score  = f.score || "";
+        q.answer = f.answer || null;
+        q.images = (f.images || "").split(",").map(s => s.trim()).filter(Boolean);
+        q.tags   = (f.tags   || "").split(",").map(s => s.trim()).filter(Boolean);
+      }
+      continue;
+    }
+
+    // 大题组标记
+    if ((m = RE_GROUP.exec(line))){
+      q = null;
+      newBlock(m[1]);
+      continue;
+    }
+
+    // 其余 HTML 注释一律丢弃，绝不进入正文
+    if (/^<!--/.test(line)) continue;
+
+    // 标题
+    if ((m = RE_H.exec(line))){
+      const lv = m[1].length, text = m[2].trim();
+      if (lv === 2){
+        q = null; blk = null; sub = null; pendingHeading = "";
+        sec = { title:text, desc:"", blocks:[], questions:[] };
+        sections.push(sec);
+      } else if (lv === 3){
+        // ### (1)：先记下标题，等组标记或第一道题来认领
+        q = null; blk = null; sub = null;
+        pendingHeading = text;
+      } else {
+        // #### 判断题 / 选择题：开一个新分栏
+        q = null;
+        if (sec && !blk) newBlock("");
+        newSub(text);
+      }
+      continue;
+    }
+
+    // 正文归属：题目 > 分栏 > 题组 > 节说明
+    if (q) q.lines.push(line);
+    else if (sub) sub.pre.push(line);
+    else if (blk) blk.pre.push(line);
+    else if (sec) sec.desc += (sec.desc ? "\n" : "") + line.replace(/^>\s?/, "");
+  }
+
+  // 丢掉空壳：没有题目的分栏、题组、节都不保留。
+  // 这里一律原地修改而非对象展开——展开会重建对象，题目的 section 就会指向
+  // 被丢弃的中间副本，日后谁用到这个字段都会踩空。
+  for (const s of sections){
+    for (const b of s.blocks){
+      // 分栏只要有内容就保留：没有题目但有代码的（组内程序）不能丢
+      b.subs = b.subs.filter(x => x.questions.length || x.pre.some(l => l.trim()));
+    }
+    s.blocks = s.blocks.filter(b => b.subs.some(x => x.questions.length));
+    s.questions = s.blocks.flatMap(b => b.subs.flatMap(x => x.questions));
+  }
+  const kept = sections.filter(s => s.blocks.length);
+
+  // 题解块从题干里剥离（见 extractSolution）：必须在结构定稿后做一次，
+  // 此后 q.lines 不再变动，qCard 才能安全地缓存切块结果。
+  for (const s of kept) for (const q of s.questions) extractSolution(q);
+
+  return { fm, sections: kept, questions: kept.flatMap(s => s.questions) };
+}
+
+/** 把题目正文按块切开：图片、代码、题干、选项 */
+function splitBody(lines){
+  const stem = [], opts = [], imgs = [], blocks = [];
+  let buf = [], inCode = false, codeLang = "";
+
+  const pushText = () => {
+    if (!buf.length) return;
+    const text = buf.join("\n").trim();
+    if (text) blocks.push({ kind:"text", text });
+    buf = [];
+  };
+
+  for (const line of lines){
+    const fence = /^```(\w*)\s*$/.exec(line);
+    if (fence){
+      if (!inCode){ pushText(); inCode = true; codeLang = fence[1] || ""; buf = []; }
+      else { blocks.push({ kind:"code", lang:codeLang, text:buf.join("\n") }); buf=[]; inCode=false; }
+      continue;
+    }
+    if (inCode){ buf.push(line); continue; }
+
+    const im = /^!\[([^\]]*)\]\(([^)]+)\)\s*$/.exec(line);
+    if (im){ pushText(); imgs.push({ alt:im[1], src:im[2] }); blocks.push({ kind:"img", alt:im[1], src:im[2] }); continue; }
+
+    const op = /^[-*]\s+([A-D])[.、．]\s*(.*)$/.exec(line);
+    if (op){ pushText(); opts.push({ label:op[1], text:op[2] }); continue; }
+
+    if (!line.trim()){ pushText(); continue; }
+    buf.push(line);
+  }
+  pushText();
+  return { stem: blocks.filter(b => b.kind === "text"), opts, imgs, blocks };
+}
+
+/* =========================================================================
+   3. 极简 Markdown 渲染（无依赖）
+   ========================================================================= */
+/* --- LaTeX -> Unicode\uFF1A\u65E0\u4F9D\u8D56\u5730\u628A\u516C\u5F0F\u6E32\u67D3\u6210\u53EF\u8BFB\u8BB0\u53F7 ---------------------
+   \u8BD5\u5377\u91CC\u7684\u516C\u5F0F\u90FD\u662F\u5E38\u89C4\u8BB0\u53F7\uFF08\le\u3001\log\u3001\u4E0A\u4E0B\u6807\u3001\max \u4E4B\u7C7B\uFF09\uFF0C\u7B26\u53F7\u8868 + Unicode
+   \u4E0A\u4E0B\u6807\u5373\u53EF\u8986\u76D6\uFF0C\u4E0D\u5FC5\u5F15\u5165 KaTeX\uFF08\u90A3\u8981\u989D\u5916\u51E0\u767E KB \u4E0E\u5B57\u4F53\u6587\u4EF6\uFF09\u3002
+   \u8BA4\u4E0D\u51FA\u7684\u547D\u4EE4\u9000\u5316\u4E3A\u53BB\u6389\u53CD\u659C\u6760\u7684\u539F\u6587\uFF0C\u4E0D\u4F1A\u6E32\u67D3\u6210\u4E71\u7801\u6216\u7A7A\u767D\u3002 */
+const MATH_SYMS = {
+  le:"\u2264", leq:"\u2264", ge:"\u2265", geq:"\u2265", ne:"\u2260", neq:"\u2260", approx:"\u2248", equiv:"\u2261",
+  sim:"\u223C", propto:"\u221D", perp:"\u22A5", angle:"\u2220", triangle:"\u25B3", circ:"\u2218",
+  times:"\u00D7", cdot:"\u00B7", div:"\u00F7", pm:"\u00B1", mp:"\u2213", ast:"\u2217", star:"\u22C6",
+  oplus:"\u2295", otimes:"\u2297", cap:"\u2229", cup:"\u222A", emptyset:"\u2205", varnothing:"\u2205",
+  infty:"\u221E", ldots:"\u2026", cdots:"\u22EF", dots:"\u2026", vdots:"\u22EE", ddots:"\u22F1",
+  to:"\u2192", rightarrow:"\u2192", leftarrow:"\u2190", Rightarrow:"\u21D2", Leftarrow:"\u21D0",
+  leftrightarrow:"\u2194", Leftrightarrow:"\u21D4", mapsto:"\u21A6",
+  in:"\u2208", notin:"\u2209", ni:"\u220B", subset:"\u2282", subseteq:"\u2286", supset:"\u2283", supseteq:"\u2287",
+  forall:"\u2200", exists:"\u2203", nexists:"\u2204", neg:"\u00AC", land:"\u2227", lor:"\u2228",
+  sum:"\u2211", prod:"\u220F", int:"\u222B", oint:"\u222E", partial:"\u2202", nabla:"\u2207",
+  lfloor:"\u230A", rfloor:"\u230B", lceil:"\u2308", rceil:"\u2309", langle:"\u27E8", rangle:"\u27E9",
+  alpha:"\u03B1", beta:"\u03B2", gamma:"\u03B3", delta:"\u03B4", epsilon:"\u03B5", varepsilon:"\u03B5",
+  zeta:"\u03B6", eta:"\u03B7", theta:"\u03B8", Theta:"\u0398", iota:"\u03B9", kappa:"\u03BA",
+  lambda:"\u03BB", mu:"\u03BC", nu:"\u03BD", xi:"\u03BE", pi:"\u03C0", Pi:"\u03A0", rho:"\u03C1", sigma:"\u03C3",
+  Sigma:"\u03A3", tau:"\u03C4", upsilon:"\u03C5", phi:"\u03C6", varphi:"\u03C6", Phi:"\u03A6",
+  chi:"\u03C7", psi:"\u03C8", Psi:"\u03A8", omega:"\u03C9", Omega:"\u03A9",
+  Gamma:"\u0393", Delta:"\u0394", Lambda:"\u039B", Xi:"\u039E", Upsilon:"\u03A5",
+};
+const MATH_FUNCS = ["arcsin","arccos","arctan","sinh","cosh","tanh","sin","cos",
+  "tan","cot","sec","csc","log","ln","lg","exp","max","min","gcd","lcm",
+  "lim","det","dim","ker","deg","mod","bmod","sup","inf"];
+
+function renderMath(src){
+  let s = esc(src);
+
+  s = s.replace(/\\(left|right|displaystyle|textstyle)\b/g, "");
+  // \frac{a}{b} -> \u4E0A\u4E0B\u53E0\u653E
+  s = s.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g,
+    '<span class="frac"><span>$1</span><span>$2</span></span>');
+  s = s.replace(/\\sqrt\s*\{([^{}]*)\}/g, '\u221A<span class="rad">$1</span>');
+  s = s.replace(/\\sqrt\s*(\w)/g, "\u221A$1");
+  s = s.replace(/\\(?:text|mathrm|mathbf|mathit|operatorname)\s*\{([^{}]*)\}/g, "$1");
+  // \u4E0A\u4E0B\u6807
+  s = s.replace(/\^\{([^{}]*)\}/g, "<sup>$1</sup>");
+  s = s.replace(/_\{([^{}]*)\}/g, "<sub>$1</sub>");
+  s = s.replace(/\^(\w)/g, "<sup>$1</sup>");
+  s = s.replace(/_(\w)/g, "<sub>$1</sub>");
+  // \u51FD\u6570\u540D\u76F4\u7ACB\u663E\u793A\uFF0C\u907F\u514D\u4E0E\u659C\u4F53\u53D8\u91CF\u6DF7\u6DC6
+  const fnRe = new RegExp("\\\\(" + MATH_FUNCS.join("|") + ")\\b", "g");
+  s = s.replace(fnRe, '<span class="op">$1</span>');
+  // \u7B26\u53F7\u8868\uFF1B\u8BA4\u4E0D\u51FA\u7684\u547D\u4EE4\u53BB\u6389\u53CD\u659C\u6760\u4FDD\u7559\u539F\u540D
+  s = s.replace(/\\([A-Za-z]+)/g, (_, n) => MATH_SYMS[n] !== undefined ? MATH_SYMS[n] : n);
+  // \u8F6C\u4E49\u5B57\u7B26 \{ \} \% \& \_ \$ \#
+  s = s.replace(/\\([{}%&_$#])/g, "$1");
+  // \u95F4\u8DDD
+  s = s.replace(/\\qquad/g, "\u3000").replace(/\\quad/g, " ").replace(/\\[,;:! ]/g, " ");
+  return s;
+}
+
+/* inlineMd \u5BF9\u540C\u4E00\u6BB5\u6587\u5B57\u662F\u7EAF\u51FD\u6570\uFF0C\u800C\u4E00\u6B21\u6E32\u67D3\u4F1A\u53CD\u590D\u78B0\u5230\u540C\u6837\u7684\u7247\u6BB5
+   \uFF08\u5207\u6362\u7B5B\u9009\u3001\u5C55\u5F00\u6D6E\u5C42\u90FD\u8981\u628A\u9898\u9762\u91CD\u753B\u4E00\u904D\uFF0C600 \u5F20\u5361\u4E0B\u6765\u662F\u4E0A\u4E07\u6B21\u6B63\u5219\uFF09\u3002
+   \u52A0\u4E2A\u8BB0\u5FC6\u8868\uFF0C\u952E\u5C31\u662F\u539F\u6587\u3002\u4E0A\u9650\u4E00\u5230\u6574\u4E2A\u6E05\u7A7A\u2014\u2014\u8FD9\u4E9B\u4E32\u5F88\u77ED\uFF0C\u91CD\u7B97\u4E0D\u5FC3\u75BC\u3002 */
+const _inlineCache = new Map();
+
+function inlineMd(s){
+  const hit = _inlineCache.get(s);
+  if (hit !== undefined) return hit;
+  const out = _inlineMd(s);
+  if (_inlineCache.size >= 5000) _inlineCache.clear();
+  _inlineCache.set(s, out);
+  return out;
+}
+
+function _inlineMd(s){
+  // \u516C\u5F0F\u548C\u884C\u5185\u4EE3\u7801\u5148\u62BD\u51FA\u6765\u5B58\u597D\uFF1A\u5B83\u4EEC\u5185\u90E8\u4F1A\u51FA\u73B0 * _ \ \u7B49\u5B57\u7B26\uFF0C
+  // \u82E5\u5148\u505A\u8F6C\u4E49\u548C\u5F3A\u8C03\u66FF\u6362\u4F1A\u88AB\u7834\u574F\u3002
+  const store = [];
+  const stash = html => { store.push(html); return "\uE000" + (store.length - 1) + "\uE000"; };
+
+  s = s.replace(/\$([^$\n]+)\$/g, (_, m) => stash('<span class="math">' + renderMath(m) + "</span>"));
+  s = s.replace(/`([^`]+)`/g, (_, c) => stash("<code>" + esc(c) + "</code>"));
+
+  s = esc(s);
+  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, src) => `<img alt="${alt}" data-src="${src}">`);
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+  s = s.replace(/\uE000(\d+)\uE000/g, (_, i) => store[+i]);
+  return s;
+}
+
+/** 题块注释 → 可读的小标签行 */
+function metaLineHtml(comment){
+  const f = {};
+  for (const part of comment.split("|")){
+    const i = part.indexOf(":");
+    if (i > 0) f[part.slice(0, i).trim()] = part.slice(i + 1).trim();
+  }
+  const bits = [];
+  if (f.qid)   bits.push(`<span class="k">qid</span> ${esc(f.qid)}`);
+  if (f.type)  bits.push(`<span class="k">type</span> ${esc(f.type)}`);
+  if (f.score) bits.push(`<span class="k">score</span> ${esc(f.score)}`);
+  if (f.images) bits.push(`<span class="k">images</span> ${esc(f.images)}`);
+  if (f.tags)  bits.push(`<span class="k">tags</span> ${esc(f.tags)}`);
+  return `<div class="qmeta">${bits.join("")}</div>`;
+}
+
+/** 渲染整篇 markdown 为 HTML */
+function renderMarkdown(text){
+  const { body } = splitFrontMatter(text);
+  const lines = body.split(/\r?\n/);
+  const out = [];
+  let i = 0;
+
+  while (i < lines.length){
+    const line = lines[i];
+
+    // 围栏代码
+    const fence = /^```(\w*)\s*$/.exec(line);
+    if (fence){
+      const buf = []; i++;
+      while (i < lines.length && !/^```\s*$/.test(lines[i])) buf.push(lines[i++]);
+      i++;
+      out.push(`<pre><code class="lang-${fence[1] || "text"}">${esc(buf.join("\n"))}</code></pre>`);
+      continue;
+    }
+    // 行间公式
+    if (/^\$\$/.test(line)){
+      const buf = [line.replace(/^\$\$\s*/, "")];
+      i++;
+      while (i < lines.length && !/\$\$\s*$/.test(lines[i])) buf.push(lines[i++]);
+      if (i < lines.length){ buf.push(lines[i].replace(/\s*\$\$\s*$/, "")); i++; }
+      out.push(`<div class="mathblock">${renderMath(buf.join(" ").trim())}</div>`);
+      continue;
+    }
+
+    // 题块注释
+    const cm = /^<!--\s*(qid:[^>]*?)\s*-->\s*$/.exec(line);
+    if (cm){ out.push(metaLineHtml(cm[1])); i++; continue; }
+    // 其他注释直接丢弃
+    if (/^<!--[\s\S]*?-->\s*$/.test(line) && !/^<!--\s*group:/.test(line)){ i++; continue; }
+    if (/^<!--\s*group:/.test(line)){ i++; continue; }
+
+    // 标题
+    let m = /^(#{1,6})\s+(.*)$/.exec(line);
+    if (m){ const lv = m[1].length; out.push(`<h${lv}>${inlineMd(m[2])}</h${lv}>`); i++; continue; }
+
+    // 分隔线
+    if (/^(-{3,}|\*{3,})\s*$/.test(line)){ out.push("<hr>"); i++; continue; }
+
+    // 引用
+    if (/^>\s?/.test(line)){
+      const buf = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) buf.push(lines[i++].replace(/^>\s?/, ""));
+      out.push(`<blockquote>${buf.map(inlineMd).join("<br>")}</blockquote>`);
+      continue;
+    }
+
+    // 表格
+    if (/^\s*\|.*\|\s*$/.test(line) && i + 1 < lines.length && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1])){
+      const cells = r => r.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+      const head = cells(lines[i]); i += 2;
+      const rows = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) rows.push(cells(lines[i++]));
+      out.push("<table><thead><tr>" + head.map(c => `<th>${inlineMd(c)}</th>`).join("") + "</tr></thead><tbody>" +
+        rows.map(r => "<tr>" + r.map(c => `<td>${inlineMd(c)}</td>`).join("") + "</tr>").join("") +
+        "</tbody></table>");
+      continue;
+    }
+
+    // 列表
+    if (/^\s*([-*]|\d+[.、])\s+/.test(line)){
+      const ordered = /^\s*\d+[.、]\s+/.test(line);
+      const buf = [];
+      while (i < lines.length && /^\s*([-*]|\d+[.、])\s+/.test(lines[i])){
+        buf.push(lines[i++].replace(/^\s*([-*]|\d+[.、])\s+/, ""));
+      }
+      const tag = ordered ? "ol" : "ul";
+      out.push(`<${tag}>${buf.map(x => `<li>${inlineMd(x)}</li>`).join("")}</${tag}>`);
+      continue;
+    }
+
+    // 空行
+    if (!line.trim()){ i++; continue; }
+
+    // 段落
+    const buf = [];
+    while (i < lines.length && lines[i].trim() &&
+           !/^(#{1,6}\s|>\s?|```|\s*([-*]|\d+[.、])\s|<!--)/.test(lines[i])){
+      buf.push(lines[i++]);
+    }
+    out.push(`<p>${buf.map(inlineMd).join("<br>")}</p>`);
+  }
+  return out.join("\n");
+}
+
+/* =========================================================================
+   4. 载入（线上静态资源 + 本地 File API 兜底）
+   ========================================================================= */
+const state = { papers: [], blobs: new Map(), entries: [], rootHandle: null, rootName: "", mode: "" };
+
+/** 扫描时跳过的目录：下划线/点开头的都是中间产物或元数据，不该读进来 */
+const SKIP_DIRS = new Set(["node_modules"]);
+const skipDir = name => SKIP_DIRS.has(name) || name.startsWith("_") || name.startsWith(".");
+
+/* ---------------------------------------------------------------------
+   线上静态题库（GitHub Pages / HTTP 预览）
+   只在启动时读取 index.json、paper.md 与 meta.json；图片和 PDF 保持同站 URL，
+   由浏览器在真正显示时按需加载，避免一打开页面就下载整套资料。
+   --------------------------------------------------------------------- */
+const HOSTED_INDEX = "题库/index.json";
+const isHostedPage = () => location.protocol === "http:" || location.protocol === "https:";
+const hostedUrl = path => new URL(String(path).replace(/^\/+/, ""), document.baseURI).href;
+
+async function fetchHosted(path, kind="text"){
+  const response = await fetch(hostedUrl(path), { cache: "no-cache" });
+  if (!response.ok) throw new Error(`${path}（HTTP ${response.status}）`);
+  return kind === "json" ? response.json() : response.text();
+}
+
+async function loadHostedPaper(record){
+  const dir = String(record.path || "").replace(/\/$/, "");
+  if (!dir) throw new Error(`索引中的试卷缺少 path：${record.paper_id || "未知试卷"}`);
+  const [text, meta] = await Promise.all([
+    fetchHosted(`${dir}/paper.md`),
+    fetchHosted(`${dir}/meta.json`, "json")
+  ]);
+  const parsed = parsePaper(text);
+
+  const assets = new Map();
+  for (const match of text.matchAll(/!\[[^\]]*\]\(([^)\s]+)\)/g)){
+    const src = match[1];
+    assets.set(baseOf(src), hostedUrl(`${dir}/${src}`));
+  }
+
+  const ansMap = new Map((meta.questions || []).map(x => [x.qid, x.answer]));
+  for (const q of parsed.questions) q.answer = q.answer || ansMap.get(q.qid) || null;
+
+  const year = meta.year || record.year || (/\d{4}/.exec(dir) || [])[0] || "";
+  const title = meta.title || record.title || parsed.fm.title || dir;
+  const examDir = String(meta.exam || (/(csp-[sj]1)/i.exec(dir) || [])[1] || "").toLowerCase();
+  const examName = examDir === "csp-j1" ? "CSP-J" : examDir === "csp-s1" ? "CSP-S" : "未分组";
+  const pdfPath = meta.source?.copy || `${dir}/${year}-试题.pdf`;
+
+  return {
+    dir, title, year, examDir, examName, meta, parsed,
+    variant: meta.paper_variant || "",
+    raw: text, pdfUrl: hostedUrl(pdfPath), pdfName: baseOf(pdfPath),
+    assets,
+    totalScore: parsed.questions.reduce((sum, q) => sum + (parseFloat(q.score) || 0), 0)
+  };
+}
+
+async function loadHostedLibrary(){
+  state.mode = "hosted";
+  state.rootHandle = null;
+  state.rootName = "在线题库";
+  $("#importer").hidden = false;
+  $("#browseWrap").hidden = true;
+  $("#dropTitle").textContent = "正在加载在线题库";
+  $("#dropMsg").textContent = "正在读取题库索引与试卷数据，请稍候……";
+  $("#pick").hidden = true;
+  $("#pickFile").hidden = true;
+  try {
+    const index = await fetchHosted(HOSTED_INDEX, "json");
+    const records = (index.exams || []).flatMap(exam => exam.papers || []);
+    if (!records.length) throw new Error("题库索引中没有试卷");
+    const papers = await Promise.all(records.map(loadHostedPaper));
+    activatePapers(papers, `已加载 ${papers.length} 份在线试卷`);
+    return true;
+  } catch (error){
+    console.error("在线题库加载失败", error);
+    $("#dropTitle").textContent = "在线题库加载失败";
+    $("#dropMsg").textContent = `无法读取题库数据：${error.message}`;
+    $("#dropHint").innerHTML =
+      "请确认页面通过 HTTP(S) 访问，且 <code>题库/index.json</code>、各年份的 " +
+      "<code>paper.md</code> 与 <code>meta.json</code> 已一起部署。";
+    $("#pick").textContent = "重新加载";
+    $("#pick").hidden = false;
+    updateDirBadge();
+    return false;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   目录授权（首选路径）
+   用 File System Access API：授权一次后可反复扫描，且句柄能存进 IndexedDB。
+   局限见 README：浏览器要求授权必须由点击触发，Firefox/Safari 不支持。
+   --------------------------------------------------------------------- */
+const IDB_NAME = "tiku-viewer", IDB_STORE = "handles";
+
+function idbOpen(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbSet(key, val){
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).put(val, key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function idbGet(key){
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, "readonly");
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+const fsSupported = () => typeof window.showDirectoryPicker === "function";
+
+/** 递归扫描目录句柄 -> [{file, rel}] */
+async function walkHandle(dirHandle, prefix, out){
+  for await (const entry of dirHandle.values()){
+    if (skipDir(entry.name)) continue;
+    const rel = prefix + entry.name;
+    if (entry.kind === "file"){
+      out.push({ file: await entry.getFile(), rel });
+    } else if (entry.kind === "directory"){
+      await walkHandle(entry, rel + "/", out);
+    }
+  }
+}
+
+/** 重新扫描已授权的目录（不再弹窗） */
+async function scanHandle(){
+  if (!state.rootHandle) return;
+  const entries = [];
+  try {
+    await walkHandle(state.rootHandle, "", entries);
+  } catch (e){
+    toast("读取目录失败：" + e.message);
+    return;
+  }
+  if (!entries.length){ toast("目录里没有文件"); return; }
+  ingest(entries);
+}
+
+/** 弹出浏览器授权窗口，让用户选目录 */
+async function pickDirectory(){
+  let handle;
+  try {
+    handle = await window.showDirectoryPicker({ id: "tiku", mode: "read" });
+  } catch (e){
+    if (e.name !== "AbortError") toast("打不开目录选择器：" + e.message);
+    return;                       // 用户取消，静默返回
+  }
+  state.rootHandle = handle;
+  state.rootName = handle.name;
+  try { await idbSet("root", handle); } catch(_){}
+  updateDirBadge();
+  await scanHandle();
+}
+
+/** 恢复上次的目录：需要一次点击触发重新授权 */
+async function restoreDirectory(handle){
+  let perm = "denied";
+  try {
+    perm = await handle.requestPermission({ mode: "read" });
+  } catch (e){
+    toast("授权失败：" + e.message);
+    return;
+  }
+  if (perm !== "granted"){ toast("未获得读取授权"); return; }
+  pendingHandle = null;
+  state.rootHandle = handle;
+  state.rootName = handle.name;
+  updateDirBadge();
+  await scanHandle();
+}
+
+function updateDirBadge(){
+  const b = $("#dirBadge");
+  const connected = state.mode === "hosted" ? state.papers.length > 0 : !!state.rootHandle;
+  b.hidden = !connected;
+  if (connected){
+    b.className = "dirbadge";
+    b.textContent = state.rootName;
+    b.title = state.mode === "hosted" ? "已连接线上静态题库" : "已连接目录：" + state.rootName;
+  }
+  $("#rescanBtn").hidden = !connected;
+  $("#rescanBtn").textContent = state.mode === "hosted" ? "重新加载" : "重新扫描";
+  $("#changeDirBtn").hidden = state.mode !== "local" || !(state.rootHandle || state.papers.length);
+  const groups = new Set(state.papers.map(p => p.examDir).filter(k => k === "csp-j1" || k === "csp-s1"));
+  const hint = $("#scanHint");
+  hint.hidden = state.mode !== "local" || groups.size !== 1;
+  if (!hint.hidden){
+    const group = groups.has("csp-j1") ? "J" : "S";
+    hint.textContent = `当前只扫描到 ${group} 组；切换到包含 J/S 两组的“题库”或“试题”目录`;
+  }
+}
+
+/** <input> / 拖拽 这两条兜底路径的 File 列表 -> [{file, rel}] */
+function toEntries(fileList){
+  return [...fileList].map(f => ({
+    file: f,
+    rel: (f.webkitRelativePath || f.name).replace(/\\/g, "/")
+  }));
+}
+
+/** 从 [{file, rel}] 里识别出每一份试卷 */
+function activatePapers(papers, message){
+  state.papers = papers.filter(Boolean);
+  reindexQuiz();
+  $("#importer").hidden = true;
+  $("#browseWrap").hidden = false;
+  updateDirBadge();
+  renderBrowse();
+  toast(message || `已导入 ${state.papers.length} 份试卷`);
+}
+
+function ingest(entries){
+  state.mode = "local";
+  state.entries = entries;
+  const byDir = new Map();
+  for (const e of entries){
+    const d = dirOf(e.rel);
+    if (!byDir.has(d)) byDir.set(d, []);
+    byDir.get(d).push(e);
+  }
+
+  const isMd = e => /\.md$/i.test(baseOf(e.rel)) && !/^(README|SPEC|TAGS)/i.test(baseOf(e.rel));
+  const papers = [];
+  for (const [dir, list] of byDir){
+    const md = list.find(e => isMd(e) && /^(paper|试题)/i.test(baseOf(e.rel))) || list.find(isMd);
+    if (!md) continue;
+
+    const pdf = list.find(e => /\.pdf$/i.test(baseOf(e.rel)));
+    const assets = new Map();
+    for (const e of entries){
+      if (e.rel.startsWith(dir + "/assets/")) assets.set(baseOf(e.rel), e.file);
+    }
+    papers.push({ dir, mdEntry: md, pdfEntry: pdf || null, assets });
+  }
+
+  if (!papers.length){
+    toast("没找到 paper.md，请选择包含题库的文件夹");
+    return;
+  }
+
+  Promise.all(papers.map(loadPaper)).then(list => activatePapers(list));
+}
+
+async function loadPaper(p){
+  const text = await p.mdEntry.file.text();
+  const parsed = parsePaper(text);
+
+  let meta = {};
+  // meta.json 只取标题/年份这类试卷级信息；题目本身一律以 paper.md 为准
+  const metaEntry = findSibling(p.dir, "meta.json");
+  if (metaEntry){
+    try { meta = JSON.parse(await metaEntry.text()); } catch(_){}
+  }
+
+  for (const [name, f] of p.assets){
+    if (!state.blobs.has(f)) state.blobs.set(f, URL.createObjectURL(f));
+  }
+  let pdfUrl = null;
+  if (p.pdfEntry){
+    if (!state.blobs.has(p.pdfEntry.file)) state.blobs.set(p.pdfEntry.file, URL.createObjectURL(p.pdfEntry.file));
+    pdfUrl = state.blobs.get(p.pdfEntry.file);
+  }
+
+  // 答案以 paper.md 的题块注释为准；注释里没写才回退到 meta.json
+  const ansMap = new Map((meta.questions || []).map(x => [x.qid, x.answer]));
+  for (const q of parsed.questions) q.answer = q.answer || ansMap.get(q.qid) || null;
+
+  const year = meta.year || (/(\d{4})/.exec(p.dir) || [])[1] || "";
+  const title = meta.title || parsed.fm.title || p.dir;
+  // 组别优先取 meta.exam，缺失时从路径里的 csp-s1 / csp-j1 兜底
+  const examDir = String(meta.exam || (/(csp-[sj]1)/i.exec(p.dir) || [])[1] || "").toLowerCase();
+  const examName = examDir === "csp-j1" ? "CSP-J" : examDir === "csp-s1" ? "CSP-S" : "未分组";
+
+  return {
+    dir: p.dir, title, year, examDir, examName, meta, parsed,
+    variant: meta.paper_variant || "",
+    raw: text, pdfUrl, pdfName: p.pdfEntry ? p.pdfEntry.name : "",
+    assets: p.assets,
+    totalScore: parsed.questions.reduce((s, q) => s + (parseFloat(q.score) || 0), 0)
+  };
+}
+
+function findSibling(dir, name){
+  const hit = (state.entries || []).find(e => dirOf(e.rel) === dir && baseOf(e.rel) === name);
+  return hit ? hit.file : null;
+}
+
+/** 载入后把图片 src 换成 blob URL */
+function resolveImages(root, paper){
+  for (const img of $$("img[data-src]", root)){
+    const name = baseOf(img.getAttribute("data-src"));
+    const f = paper.assets.get(name);
+    if (f){
+      if (typeof f === "string"){
+        img.src = f;
+      } else {
+        if (!state.blobs.has(f)) state.blobs.set(f, URL.createObjectURL(f));
+        img.src = state.blobs.get(f);
+      }
+    } else {
+      img.replaceWith(Object.assign(document.createElement("div"), {
+        className:"badge", textContent:`缺图：${name}`
+      }));
+    }
+    img.removeAttribute("data-src");
+  }
+}
+
+/* =========================================================================
+   5. 浏览视图
+   ========================================================================= */
+const filter = { paper:null, exam:null, section:new Set(),
+                 topic:new Set(), text:"" };
+
+const EXAM_LABEL = { "csp-j1": "CSP-J 入门级", "csp-s1": "CSP-S 提高级" };
+const examLabel = k => EXAM_LABEL[k] || k;
+
+/* 题型按「节」划分，只有三类：一、单项选择题 → 选择题；二、阅读程序；三、完善程序。
+   判断题/单选题是作答形式（q.type），不参与题型这个维度。 */
+const SEC_RULES = [["选择", "选择题"], ["阅读", "阅读程序"], ["完善", "完善程序"]];
+const secLabel = sec => {
+  const t = (sec && sec.title) || "";
+  for (const [k, v] of SEC_RULES) if (t.includes(k)) return v;
+  return t || "其他";
+};
+
+/* 多选下拉（题型 / 知识点）：按钮上显示已选了什么，选项在绝对定位的面板里。
+   面板**不改文档高度**，所以展开/收起不会引发滚动锚定（同筛选栏那条教训）。 */
+const ddText = (chosen, label = k => k) =>
+  chosen.length ? chosen.map(label).join("、") : "全部";
+
+let openDD = null;                  // 哪个下拉开着；renderBrowse() 重绘之后要恢复
+function applyDD(){
+  for (const d of $$(".dd")){
+    const on = d.id === openDD;
+    d.classList.toggle("open", on);
+    const b = d.querySelector(".ddbtn");
+    if (b) b.setAttribute("aria-expanded", String(on));
+  }
+}
+function closeDD(){ openDD = null; applyDD(); }
+
+/** 当前筛了什么——常驻筛选区会随页面滚走，靠这一行一直看得见 */
+function filterSummary(){
+  const on = [];
+  const p = state.papers.find(x => x.dir === filter.paper);
+  if (p) on.push(`${p.examName} ${p.year}`);
+  if (filter.exam) on.push(examLabel(filter.exam));
+  for (const k of filter.section) on.push(k);
+  for (const k of filter.topic) on.push(tagLabel(k));
+  if (filter.text) on.push(`“${filter.text}”`);
+  if (!on.length) return "未设筛选条件";
+  return `已选 <b>${on.length}</b> 项：${esc(on.join(" · "))}`;
+}
+
+function renderBrowse(){
+  const wrap = $("#browseWrap");
+  /* 重绘会把滚动位置清零，两处都要留住：
+     - 下拉面板自己的滚动（考点有 19 个、面板可滚，挑靠下的考点时常滚到底）
+     - 页面滚到哪儿了
+     内容变短时浏览器会把还原值自动夹到合法范围，所以直接赋值是安全的。 */
+  const pageEl = $("#page-browse");
+  const keepPageTop = pageEl ? pageEl.scrollTop : 0;
+  const ddOpen = openDD ? $(`#${openDD} .ddpanel`) : null;
+  const keepDDTop = ddOpen ? ddOpen.scrollTop : 0;
+  const all = state.papers.flatMap(p => p.parsed.questions.map(q => ({ q, p })));
+
+  const countBy = (list, fn) => {
+    const m = new Map();
+    for (const x of list){ const k = fn(x); if (k) m.set(k, (m.get(k) || 0) + 1); }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  };
+  /* 一道题可以挂多个 topic，所以 chip 上的数字必须等于「点它之后还剩几题」，
+     每个 tag 都要计一次。只取第一个会让数字偏小（曾出现标 1、实际筛出 2）。 */
+  const countByEach = (list, fn) => {
+    const m = new Map();
+    for (const x of list) for (const k of fn(x)){ if (k) m.set(k, (m.get(k) || 0) + 1); }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  };
+
+  const pool = filter.paper ? all.filter(x => x.p.dir === filter.paper) : all;
+  const topics = countByEach(pool, x => (x.q.tags || []).filter(t => t.startsWith("topic:")));
+  const secs   = countBy(pool, x => secLabel(x.q.section));
+
+  // 组别按「试卷数」统计，不是题目数
+  const examPapers = new Map();
+  for (const p of state.papers) examPapers.set(p.examDir, (examPapers.get(p.examDir) || 0) + 1);
+
+  // 统计
+  const paperList = filter.paper ? state.papers.filter(p => p.dir === filter.paper) : state.papers;
+  const nq = paperList.reduce((s, p) => s + p.parsed.questions.length, 0);
+  const ns = paperList.reduce((s, p) => s + p.totalScore, 0);
+
+  wrap.innerHTML = `
+    <div class="stats" data-ui="browse.stats">
+      <div class="stat" data-ui="browse.stat.papers"><b>${paperList.length}</b><span>份试卷</span></div>
+      <div class="stat" data-ui="browse.stat.questions"><b>${nq}</b><span>道小题</span></div>
+      <div class="stat" data-ui="browse.stat.score"><b>${ns % 1 ? ns.toFixed(1) : ns}</b><span>合计分值</span></div>
+      <div class="stat" data-ui="browse.stat.images"><b>${paperList.reduce((s,p)=>s+p.parsed.questions.filter(q=>q.images.length).length,0)}</b><span>带图题</span></div>
+    </div>
+
+    <div class="filters" id="filters" data-ui="browse.filters">
+      <div class="fhead" data-ui="browse.filters.head">
+        <div class="fsum" id="fSummary" data-ui="browse.filters.summary">${filterSummary()}</div>
+        <div class="quizstat" data-ui="browse.quiz-stat">
+          <span>已答 <b data-ui="browse.quiz-stat.done">0</b>/<b data-ui="browse.quiz-stat.total">0</b></span>
+          <span data-ui="browse.quiz-stat.score" hidden></span>
+          <button class="btn" data-ui="browse.quiz-submit" hidden>提交</button>
+          <button class="btn" data-ui="browse.quiz-reset">重做</button>
+        </div>
+        <button class="btn" id="clear" data-ui="browse.filters.clear">清空</button>
+      </div>
+    </div>
+
+    <div class="fblocks" data-ui="browse.panels">
+      <div class="frow" data-ui="browse.filters.selects">
+        <label for="fExam">组别</label>
+        <select id="fExam" data-ui="browse.filters.exam">
+          <option value="">全部（${state.papers.length} 份）</option>
+          ${[...examPapers.entries()].map(([k, n]) =>
+            `<option value="${esc(k)}"${filter.exam === k ? " selected" : ""}>${esc(examLabel(k))}（${n} 份）</option>`
+          ).join("")}
+        </select>
+        <label for="fPaper" style="margin-left:14px">试卷</label>
+        <select id="fPaper" data-ui="browse.filters.paper">
+          <option value="">全部（${all.length} 题）</option>
+          ${state.papers.map(p =>
+            `<option value="${esc(p.dir)}"${filter.paper === p.dir ? " selected" : ""}>${esc(p.examName)} ${esc(p.year)}（${p.parsed.questions.length} 题）</option>`
+          ).join("")}
+        </select>
+      </div>
+      <div class="frow" data-ui="browse.filters.type-row">
+        <label>题型</label>
+        <div class="dd" id="ddType" data-ui="browse.filters.type">
+          <button type="button" class="ddbtn" data-ui="browse.filters.type.btn" aria-expanded="false">
+            <span class="ddtext">${ddText([...filter.section])}</span><span class="caret"></span>
+          </button>
+          <div class="ddpanel" data-ui="browse.filters.type.panel">
+            ${secs.map(([k, n]) => `<label class="ddopt"><input type="checkbox" data-v="${esc(k)}"${filter.section.has(k) ? " checked" : ""}><span>${esc(k)}</span><span class="n">${n}</span></label>`).join("")}
+          </div>
+        </div>
+      </div>
+      <div class="frow" data-ui="browse.filters.topic-row">
+        <label>知识点</label>
+        <div class="dd" id="ddTopic" data-ui="browse.filters.topic">
+          <button type="button" class="ddbtn" data-ui="browse.filters.topic.btn" aria-expanded="false">
+            <span class="ddtext">${ddText([...filter.topic], tagLabel)}</span><span class="caret"></span>
+          </button>
+          <div class="ddpanel" data-ui="browse.filters.topic.panel">
+            ${topics.map(([k, n]) => `<label class="ddopt" title="${esc(k)}"><input type="checkbox" data-v="${esc(k)}"${filter.topic.has(k) ? " checked" : ""}><span>${esc(tagLabel(k))}</span><span class="n">${n}</span></label>`).join("")}
+          </div>
+        </div>
+      </div>
+      <div class="frow" data-ui="browse.filters.search-row">
+        <label>搜索</label>
+        <input id="q" data-ui="browse.filters.search" placeholder="题干、选项、题号、qid…" value="${esc(filter.text)}">
+      </div>
+    </div>
+
+    <div id="list" data-ui="browse.list"></div>
+  `;
+
+  // 事件
+  $("#fExam").onchange  = e => { filter.exam  = e.target.value || null; renderBrowse(); };
+  $("#fPaper").onchange = e => { filter.paper = e.target.value || null; renderBrowse(); };
+  // 题型与知识点：多选下拉。面板里的 checkbox 直接改 Set，重绘后 applyDD() 保持展开
+  for (const d of $$(".dd")){
+    const set = d.id === "ddType" ? filter.section : filter.topic;
+    d.querySelector(".ddbtn").onclick = () => {
+      openDD = openDD === d.id ? null : d.id;
+      applyDD();
+    };
+    d.querySelector(".ddpanel").onchange = e => {
+      const cb = e.target.closest("input[data-v]");
+      if (!cb) return;
+      cb.checked ? set.add(cb.dataset.v) : set.delete(cb.dataset.v);
+      renderBrowse();
+    };
+  }
+  applyDD();
+
+  const qi = $("#q");
+  /* 输入防抖：renderList() 要重建整张列表（全库 600 题约需数百毫秒），
+     逐字触发等于每敲一下冻一次。等停手 160ms 再重绘，
+     但输入框本身与筛选摘要照旧即时反馈，手感不受影响。 */
+  let searchTimer = 0;
+  qi.oninput = () => {
+    filter.text = qi.value;
+    const s = $("#fSummary");            // 摘要即时更新
+    if (s) s.innerHTML = filterSummary();
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(renderList, 160);
+  };
+  $("#clear").onclick = () => {
+    filter.exam = null; filter.section.clear();
+    filter.topic.clear();
+    filter.text = ""; filter.paper = null; renderBrowse();
+  };
+
+  // 答题状态栏里的按钮随列表一起重绘，得在这里重新绑
+  const subBtn = $('[data-ui="browse.quiz-submit"]');
+  if (subBtn) subBtn.onclick = submitExam;
+  const rstBtn = $('[data-ui="browse.quiz-reset"]');
+  if (rstBtn) rstBtn.onclick = () => resetQuiz();
+
+  renderList();
+
+  // 还原滚动位置。放在最后：innerHTML 与列表都建好之后还原才有意义。
+  if (keepDDTop && openDD){
+    const p = $(`#${openDD} .ddpanel`);
+    if (p) p.scrollTop = keepDDTop;
+  }
+  if (pageEl && keepPageTop) pageEl.scrollTop = keepPageTop;
+}
+
+function matches(q, paper){
+  if (filter.paper && paper.dir !== filter.paper) return false;
+  if (filter.exam && paper.examDir !== filter.exam) return false;
+  if (filter.section.size && !filter.section.has(secLabel(q.section))) return false;
+  const tags = q.tags || [];
+  if (filter.topic.size && !tags.some(t => filter.topic.has(t))) return false;
+  if (filter.text){
+    // 检索用的整段小写文本算一次就存起来。原先每题每次都比较一遍
+    // join + toLowerCase，全库 600 题、每敲一个字都重来一遍，白白拖慢输入。
+    const hay = q._hay || (q._hay = (q.lines.join("\n") + " " + q.qid + " " + q.no).toLowerCase());
+    if (!hay.includes(filter.text.toLowerCase())) return false;
+  }
+  return true;
+}
+
+function renderList(){
+  const box = $("#list");
+  const frag = document.createDocumentFragment();
+  let shown = 0;
+
+  for (const p of state.papers){
+    if (filter.paper && p.dir !== filter.paper) continue;
+
+    // 按 节 → 大题组 → 分栏 逐层过滤，只保留还有匹配题目的层级
+    const secs = p.parsed.sections.map(s => ({
+      s,
+      blocks: s.blocks.map(b => ({
+        b,
+        subs: b.subs
+          .map(x => ({ x, qs: x.questions.filter(q => matches(q, p)) }))
+          // 承载代码/提示的分栏本身没有题目，但要跟着有匹配题目的组一起留下
+          .filter(o => o.qs.length || o.x.pre.some(l => l.trim())),
+      })).filter(o => o.subs.some(x => x.qs.length)),
+    })).filter(o => o.blocks.length);
+
+    if (!secs.length) continue;
+
+    const head = document.createElement("div");
+    head.className = "sec";
+    head.setAttribute("data-ui", "list.paper-title");
+    head.textContent = `${p.examName} ${p.year} · ${p.title}`;
+    frag.appendChild(head);
+
+    for (const { s, blocks } of secs){
+      const n = blocks.reduce((a, b) => a + b.subs.reduce((c, o) => c + o.qs.length, 0), 0);
+      const sh = document.createElement("div");
+      sh.className = "grp";
+      sh.setAttribute("data-ui", "list.section-title");
+      sh.innerHTML = `${esc(s.title)}　<span style="font-weight:400;color:var(--ink3)">${n} 题</span>`;
+      frag.appendChild(sh);
+
+      for (const { b, subs } of blocks){
+        // 大题组名（阅读程序(1) 等），只在有组名时显示
+        if (b.group || b.heading){
+          const gh = document.createElement("div");
+          gh.className = "grp2";
+          gh.setAttribute("data-ui", "list.group-title");
+
+          const name = document.createElement("span");
+          name.setAttribute("data-ui", "list.group-title.text");
+          name.textContent = [b.heading, b.group].filter(Boolean).join("　");
+          gh.appendChild(name);
+
+          // 只有题组能展开——第一节的散题没有独立题面可看
+          if (b.group){
+            const btn = document.createElement("button");
+            btn.className = "expand";
+            btn.setAttribute("data-ui", "list.group-expand");
+            btn.title = "展开题面，与题目并排查看";
+            btn.innerHTML = `<span class="ico"></span>展开题面`;
+            btn.onclick = () => openGroupOverlay(b, p);
+            gh.appendChild(btn);
+          }
+          frag.appendChild(gh);
+        }
+        // 组内题目之外的内容：程序代码、题面提示等
+        if (b.pre.length) frag.appendChild(preBlock(b.pre));
+
+        for (const { x, qs } of subs){
+          if (x.title){
+            const th = document.createElement("div");
+            th.className = "grp3";
+            th.setAttribute("data-ui", "list.sub-title");
+            th.textContent = x.title;
+            frag.appendChild(th);
+          }
+          if (x.pre.length) frag.appendChild(preBlock(x.pre));
+          for (const q of qs){ frag.appendChild(qCard(q, p)); shown++; }
+        }
+      }
+    }
+  }
+
+  box.innerHTML = "";
+  box.appendChild(frag);
+  if (!shown) box.innerHTML = `<div class="empty">没有匹配的题目</div>`;
+  resolveImages(box, { assets: new Map(state.papers.flatMap(p => [...p.assets])) });
+  indexQuizDom();         // 卡片是新渲染的，先重建 DOM 索引
+  refreshQuiz();          // 再把已答状态贴回去
+}
+
+/** 渲染「题目之外」的内容块：代码围栏、程序说明、普通段落 */
+function preBlock(lines){
+  const wrap = document.createElement("div");
+  wrap.className = "qpre";
+  wrap.setAttribute("data-ui", "qpre");
+  const segs = [];
+  let buf = [], inCode = false, lang = "";
+  let noteBuf = null;                       // 非 null 表示正在「程序说明」块里
+
+  const flushText = () => {
+    const t = buf.join("\n").trim();
+    if (t) segs.push({ kind:"text", text:t });
+    buf = [];
+  };
+  const flushNote = () => {
+    if (noteBuf === null) return;
+    const t = noteBuf.join("\n").trim();
+    if (t) segs.push({ kind:"note", text:t });
+    noteBuf = null;
+  };
+
+  for (const raw of lines){
+    // 组级「程序说明」（SPEC 3.9）：整块单独成一个 seg，好挂自己的 data-ui
+    if (RE_NOTEHEAD.test(raw)){
+      flushText(); flushNote();
+      noteBuf = [];
+      continue;
+    }
+    if (noteBuf !== null){
+      if (/^>/.test(raw)){ noteBuf.push(raw.replace(/^>\s?/, "")); continue; }
+      flushNote();                          // 块到此为止，这一行按常规处理
+    }
+    const line = raw.replace(/^>\s?/, "");     // 组内引用块的 > 去掉
+    const fence = /^```(\w*)\s*$/.exec(line);
+    if (fence){
+      if (inCode){ segs.push({ kind:"code", lang, text: buf.join("\n") }); buf = []; inCode = false; }
+      else { flushText(); inCode = true; lang = fence[1] || ""; buf = []; }
+      continue;
+    }
+    buf.push(line);
+  }
+  if (inCode) segs.push({ kind:"code", lang, text: buf.join("\n") });
+  else { flushNote(); flushText(); }
+
+  for (const s of segs){
+    if (s.kind === "code"){
+      const pre = document.createElement("pre");
+      pre.setAttribute("data-ui", "qpre.code");
+      pre.innerHTML = `<code>${esc(s.text)}</code>`;
+      wrap.appendChild(pre);
+    } else if (s.kind === "note"){
+      const d = document.createElement("div");
+      d.className = "qnote";
+      d.setAttribute("data-ui", "qpre.program-note");
+      d.innerHTML = `<p>${inlineMd(s.text.replace(/\n/g, " "))}</p>`;
+      wrap.appendChild(d);
+    } else {
+      const d = document.createElement("div");
+      d.setAttribute("data-ui", "qpre.text");
+      d.innerHTML = s.text.split(/\n{2,}/)
+        .map(x => `<p>${inlineMd(x.replace(/\n/g, " "))}</p>`).join("");
+      wrap.appendChild(d);
+    }
+  }
+  return wrap;
+}
+
+function qCard(q, p){
+  const el = document.createElement("div");
+  el.className = "qcard";
+  el.setAttribute("data-ui", "qcard");
+  el.setAttribute("data-qid", q.qid);
+  // 切块结果挂在题目对象上复用：换筛选、开浮层都会把同一道题重画一遍，
+  // 每次重切（外加几轮正则）纯属白干。q.lines 在解析完成后不再变动。
+  const { blocks, opts: rawOpts } = q._body || (q._body = splitBody(q.lines));
+  // 判断题在原卷里只有「（ ）」没有选项，这里补成两个可点的按钮
+  const opts = rawOpts.length ? rawOpts
+             : (q.type === "true_false" ? TRUE_FALSE_OPTS : []);
+
+  // 知识点与特征分开渲染：两者要能各自隐藏/定位，混在一个字符串里做不到
+  const tagHtml = (list, cls, ui) => list.map(t =>
+    `<span class="badge ${cls}" data-ui="${ui}" title="${esc(t)}">${esc(tagLabel(t))}</span>`
+  ).join("");
+  const topicTags = (q.tags || []).filter(t => t.startsWith("topic:"));
+  const featTags  = (q.tags || []).filter(t => t.startsWith("feat:"));
+
+  el.innerHTML = `
+    <div class="qhead" data-ui="qcard.head">
+      <span class="qno" data-ui="qcard.head.no">第 ${q.no} 题</span>
+      <span class="badge ${q.type === "true_false" ? "tf" : "sc"}" data-ui="qcard.head.type">${q.type === "true_false" ? "判断" : "单选"}</span>
+      <span class="badge" data-ui="qcard.head.score">${esc(q.score)} 分</span>
+      ${q.group ? `<span class="badge" data-ui="qcard.head.group">${esc(q.group)}</span>` : ""}
+      ${tagHtml(topicTags, "topic", "qcard.tag.topic")}
+      ${tagHtml(featTags,  "feat",  "qcard.tag.feat")}
+      <span class="qid" data-ui="qcard.qid">${esc(q.qid)}</span>
+    </div>
+    <div class="stem" data-ui="qcard.stem"></div>
+    ${opts.length ? `<ul class="opts" data-ui="qcard.opts">${
+      opts.map(o => `<li data-ui="qcard.opt" data-opt="${esc(o.label)}"`
+        + ` data-state="${optState(q, o.label)}"><b>${esc(o.label)}.</b>`
+        + `${inlineMd(o.text)}</li>`).join("")
+    }</ul>` : ""}
+  `;
+
+  const stem = $('[data-ui="qcard.stem"]', el);
+  for (const b of blocks){
+    if (b.kind === "text"){
+      const d = document.createElement("div");
+      d.setAttribute("data-ui", "qcard.text");
+      d.innerHTML = b.text.split(/\n{2,}/).map(x => `<p>${inlineMd(x.replace(/\n/g, " "))}</p>`).join("");
+      stem.appendChild(d);
+    } else if (b.kind === "img"){
+      const img = document.createElement("img");
+      img.className = "qimg";
+      img.setAttribute("data-ui", "qcard.image");
+      img.alt = b.alt;
+      img.setAttribute("data-src", b.src);
+      stem.appendChild(img);
+    } else if (b.kind === "code"){
+      const pre = document.createElement("pre");
+      pre.setAttribute("data-ui", "qcard.code");
+      pre.innerHTML = `<code>${esc(b.text)}</code>`;
+      el.appendChild(pre);
+    }
+  }
+  // 题解区不在这里渲染：它由 paintCard() 按答题模式增删，见 solutionNode()
+  return el;
+}
+
+/* ---- 题解区（SPEC 3.9）---------------------------------------------------
+   由 meta.json 派生，解析时已从题干里剥离到 q.solution，默认**折叠**。
+   块内三段：答案（必有）、解释（有答案的题都有）、争议（仅争议题，另起一段、
+   带警示色左边条）。
+
+   节点由 paintCard() 增删，而不是由 qCard() 直接渲染——考试模式在交卷前
+   整个题解区（连按钮）都不该出现，而切模式与交卷走的是 refreshQuiz() 的
+   重绘，只有放在 paintCard 里这两处才同时生效。
+
+   「不出现」是**不建节点**而不是 display:none：考试模式下答案不该能从 DOM
+   里读出来。 */
+function solutionAllowed(){
+  return QUIZ.mode !== "exam" || QUIZ.submitted;
+}
+
+function solutionNode(q){
+  const el = document.createElement("div");
+  el.className = "sol";
+  el.setAttribute("data-ui", "qcard.solution");
+  el.innerHTML =
+    `<button class="solbtn" data-ui="qcard.solution.toggle" data-open="false">题解</button>`
+    + `<div class="solbody" data-ui="qcard.solution.body" hidden>`
+    +   `<div class="solans" data-ui="qcard.solution.answer">答案：${esc(q.solution.answer || "")}</div>`
+    +   (q.solution.note
+          ? `<div class="solnote" data-ui="qcard.solution.note">${inlineMd(q.solution.note)}</div>`
+          : "")
+    +   (q.solution.dispute
+          ? `<div class="soldisp" data-ui="qcard.solution.dispute">`
+            + `<p>${inlineMd(q.solution.dispute)}</p></div>`
+          : "")
+    + `</div>`;
+  const btn  = $('[data-ui="qcard.solution.toggle"]', el);
+  const body = $('[data-ui="qcard.solution.body"]', el);
+  btn.onclick = () => {
+    const open = btn.dataset.open === "true";
+    btn.dataset.open = String(!open);
+    body.hidden = open;
+    btn.textContent = open ? "题解" : "收起题解";
+  };
+  return el;
+}
+
+/* =========================================================================
+   5.5 题面浮层
+   阅读程序 / 完善程序的程序与小题在正文里是上下排的，读代码时看不见选项。
+   这里把它们拆成左右两栏，各自独立滚动。
+   ========================================================================= */
+
+/** 题面 = 题组内题目之外的全部内容（说明文字、程序代码、提示） */
+function groupMaterial(b){
+  const lines = [...b.pre];
+  for (const s of b.subs) lines.push(...s.pre);
+  return lines;
+}
+
+/** 题目按分栏顺序摊平，带上所属分栏名 */
+function groupQuestions(b){
+  return b.subs.flatMap(s => s.questions.map(q => ({ q, sub: s.title })));
+}
+
+function openGroupOverlay(b, p){
+  const ov = $("#groupOverlay");
+  if (!ov) return;
+
+  const qs = groupQuestions(b);
+  const score = qs.reduce((n, o) => n + (parseFloat(o.q.score) || 0), 0);
+  $('[data-ui="overlay.title"]').textContent =
+    [b.heading, b.group].filter(Boolean).join("　");
+  $('[data-ui="overlay.meta"]').textContent =
+    `${qs.length} 题 · ${score % 1 ? score.toFixed(1) : score} 分`;
+
+  const mat = $('[data-ui="overlay.material"]');
+  mat.innerHTML = "";
+  mat.appendChild(preBlock(groupMaterial(b)));
+
+  const qbox = $('[data-ui="overlay.questions"]');
+  qbox.innerHTML = "";
+  let lastSub = null;
+  for (const { q, sub } of qs){
+    if (sub && sub !== lastSub){
+      const h = document.createElement("div");
+      h.className = "grp3";
+      h.setAttribute("data-ui", "overlay.sub-title");
+      h.textContent = sub;
+      qbox.appendChild(h);
+      lastSub = sub;
+    }
+    qbox.appendChild(qCard(q, p));
+  }
+
+  resolveImages(mat, p);
+  resolveImages(qbox, p);
+  mat.scrollTop = 0;
+  qbox.scrollTop = 0;
+
+  indexQuizDom();         // 浮层里也是题卡，重建索引把它们一并纳入
+  refreshQuiz();          // 带上已答状态
+  ov.hidden = false;
+  document.body.classList.add("ov-open");
+}
+
+function closeGroupOverlay(){
+  const ov = $("#groupOverlay");
+  if (ov) ov.hidden = true;
+  document.body.classList.remove("ov-open");
+  indexQuizDom();         // 浮层已收起，把它的卡片从索引里去掉
+}
+
+/** 左右分栏可拖动，代码宽时把左边拉大 */
+function initOverlayResize(){
+  const body = $('[data-ui="overlay.body"]');
+  const left = $('[data-ui="overlay.material"]');
+  const div  = $('[data-ui="overlay.divider"]');
+  if (!body || !left || !div) return;
+
+  let dragging = false;
+  div.addEventListener("mousedown", e => {
+    dragging = true;
+    e.preventDefault();
+    document.body.style.cursor = "col-resize";
+  });
+  window.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    const r = body.getBoundingClientRect();
+    const pct = ((e.clientX - r.left) / r.width) * 100;
+    left.style.flexBasis = Math.min(85, Math.max(15, pct)) + "%";
+  });
+  window.addEventListener("mouseup", () => {
+    dragging = false;
+    document.body.style.cursor = "";
+  });
+}
+
+/* =========================================================================
+   5.6 答题
+   两种模式：
+     普通模式 —— 点选项立刻判对错
+     考试模式 —— 先作答，点「提交」后统一揭示
+   答案取自 meta.json 的 questions[].answer（paper.md 里不含答案）。
+   没答案的题照样能选，只是判不了分，会明确标出来。
+   ========================================================================= */
+const QUIZ = {
+  mode: "normal",
+  chosen: new Map(),      // qid -> 选中的选项
+  revealed: new Set(),    // 已揭示结果的 qid
+  submitted: false,       // 考试模式是否已提交
+  index: new Map(),       // qid -> 题目对象，答题时反查
+  dom: new Map(),         // qid -> [{card, opts:Map<label,li>}]，见下
+};
+
+/** 载入完成后建立 qid 索引 */
+function reindexQuiz(){
+  QUIZ.index.clear();
+  for (const p of state.papers)
+    for (const q of p.parsed.questions) QUIZ.index.set(q.qid, q);
+}
+
+/* ---- DOM 索引 ----------------------------------------------------------
+   同一道题在页面上可能**同时存在两张卡**：列表里一张、题面浮层里一张。
+   所以 qid 映射到的是数组。
+
+   早先 refreshQuiz() 每次都 document.querySelectorAll 全表扫一遍，
+   每张卡再各查一次选项与结论——600 张卡下来是 1200+ 次查询，
+   外加把 2000 多个 data-state 全部重写。点一下选项就卡在这儿。
+
+   现在改成：**整表重绘后**建一次索引（本来就刚重建过 DOM，这一次遍历很便宜），
+   之后答题只按 qid 取到那两张卡来更新。 */
+function indexQuizDom(root = document){
+  QUIZ.dom.clear();
+  for (const card of $$('[data-ui="qcard"]', root)){
+    const qid = card.dataset.qid;
+    if (!qid) continue;
+    const opts = new Map();
+    for (const li of $$('[data-ui="qcard.opt"]', card)) opts.set(li.dataset.opt, li);
+    // 把已存在的结论元素一并认领。索引会在浮层开合等场合重建，
+    // 若不认领，paintCard 会以为没有结论、再插一个，页面上就出现两条结论。
+    // 题解区同理：它在考卷模式切换时会被增删，索引重建后必须认领回来。
+    const el = $('[data-ui="qcard.verdict"]', card);
+    const sol = $('[data-ui="qcard.solution"]', card);
+    let arr = QUIZ.dom.get(qid);
+    if (!arr) QUIZ.dom.set(qid, arr = []);
+    arr.push({ card, opts, verdict: el || null, solution: sol || null });
+  }
+}
+
+/** 把一道题的状态画到它的所有卡片上 */
+function paintCard(ref, q){
+  for (const [label, li] of ref.opts){
+    const st = optState(q, label);
+    if (li.dataset.state !== st) li.dataset.state = st;
+  }
+
+  // 题解区：该不该存在由模式决定（见 solutionNode）。整卡重绘后元素会脱链，
+  // isConnected 为假就重新认领，否则会插出第二个题解区。
+  let sol = ref.solution;
+  if (sol && !sol.isConnected) sol = ref.solution = null;   // 卡片被重绘过
+  const wantSol = !!q.solution && solutionAllowed();
+  if (wantSol && !sol){
+    sol = solutionNode(q);
+    ref.card.appendChild(sol);
+    ref.solution = sol;
+  } else if (!wantSol && sol){
+    sol.remove();
+    ref.solution = null;
+  }
+
+  const v = verdict(q);
+  let el = ref.verdict;
+  if (el && !el.isConnected) el = ref.verdict = null;   // 卡片被重绘过
+  if (!v){
+    if (el){ el.remove(); ref.verdict = null; }
+    return;
+  }
+  if (!el){
+    el = document.createElement("div");
+    el.className = "verdict";
+    el.setAttribute("data-ui", "qcard.verdict");
+    const opts = $('[data-ui="qcard.opts"]', ref.card);
+    if (opts) opts.after(el); else ref.card.appendChild(el);
+    ref.verdict = el;
+  }
+  if (el.dataset.v !== v.v) el.dataset.v = v.v;
+  if (el.textContent !== v.text) el.textContent = v.text;
+}
+
+/** 只刷新一道题（答题时走这条，O(1)） */
+function refreshCard(qid){
+  const q = QUIZ.index.get(qid);
+  if (!q) return;
+  const refs = QUIZ.dom.get(qid);
+  if (refs) for (const ref of refs) paintCard(ref, q);
+}
+
+const allQuestions = () => [...QUIZ.index.values()];
+
+/** 判断题在原卷里没有 ABCD 选项，补上「正确 / 错误」 */
+const TRUE_FALSE_OPTS = [{ label:"T", text:"正确 √" }, { label:"F", text:"错误 ×" }];
+const ANS_LABEL = { T:"正确 √", F:"错误 ×" };
+const ansText = q => ANS_LABEL[q.answer] || q.answer;
+
+/** 选项该显示成什么状态；空串=未作答 */
+function optState(q, label){
+  const chosen = QUIZ.chosen.get(q.qid);
+  if (!QUIZ.revealed.has(q.qid)) return chosen === label ? "chosen" : "";
+  if (!q.answer) return chosen === label ? "chosen" : "";    // 没答案，判不了
+  if (q.answer === label) return "correct";
+  return chosen === label ? "wrong" : "";
+}
+
+/** 题末结论 */
+function verdict(q){
+  if (!QUIZ.revealed.has(q.qid)) return null;
+  if (!q.answer) return { v:"none", text:"本题暂无答案，无法判分" };
+  const chosen = QUIZ.chosen.get(q.qid);
+  if (!chosen) return { v:"none", text:`未作答 · 正确答案 ${ansText(q)}` };
+  return chosen === q.answer
+    ? { v:"right", text:"回答正确" }
+    : { v:"wrong", text:`回答错误 · 正确答案 ${ansText(q)}` };
+}
+
+function answerQuestion(qid, label){
+  if (QUIZ.revealed.has(qid)) return;        // 已揭示就锁住，不许改
+  if (!QUIZ.index.has(qid)) return;
+  QUIZ.chosen.set(qid, label);
+  if (QUIZ.mode === "normal") QUIZ.revealed.add(qid);
+  refreshCard(qid);                          // 只重画这一题，不扫全表
+  updateQuizStat();
+}
+
+/** 按当前状态刷新**所有**已渲染的卡片。整表重绘、换模式、交卷时用。
+    走 QUIZ.dom 索引，不再逐个卡去查 DOM。 */
+function refreshQuiz(){
+  for (const [qid, refs] of QUIZ.dom){
+    const q = QUIZ.index.get(qid);
+    if (!q) continue;
+    for (const ref of refs) paintCard(ref, q);
+  }
+  updateQuizStat();
+}
+
+function updateQuizStat(){
+  // 一次遍历算完，别为每个计数都 filter 一遍（600 题 × 4 遍 =
+  // 四趟数组分配，点击时白白制造垃圾）
+  let done = 0, graded = 0, right = 0, blank = 0;
+  for (const q of QUIZ.index.values()){
+    const chosen = QUIZ.chosen.get(q.qid);
+    if (chosen) done++;
+    if (!QUIZ.revealed.has(q.qid) || !q.answer) continue;
+    graded++;
+    if (!chosen) blank++;
+    else if (chosen === q.answer) right++;
+  }
+  const wrong = graded - right - blank;
+
+  const put = (sel, html, show) => {
+    const el = $(sel);
+    if (!el) return;
+    el.hidden = !show;
+    if (html !== null) el.innerHTML = html;
+  };
+  put('[data-ui="browse.quiz-stat.done"]', String(done), true);
+  put('[data-ui="browse.quiz-stat.total"]', String(QUIZ.index.size), true);
+  put('[data-ui="browse.quiz-stat.score"]',
+      `正确 <b class="ok">${right}</b> · 错误 <b class="bad">${wrong}</b>`
+      + (blank ? ` · 未答 ${blank}` : ""),
+      graded > 0);
+  put('[data-ui="browse.quiz-submit"]', null, QUIZ.mode === "exam" && !QUIZ.submitted);
+}
+
+function resetQuiz(refresh = true){
+  QUIZ.chosen.clear();
+  QUIZ.revealed.clear();
+  QUIZ.submitted = false;
+  if (refresh) refreshQuiz();
+}
+
+function setQuizMode(mode){
+  QUIZ.mode = mode;
+  resetQuiz(false);                     // 换模式一律重来，免得状态对不上
+  $$(".qm").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+  try { localStorage.setItem("tiku.quizMode", mode); } catch(_){}
+  refreshQuiz();
+}
+
+function submitExam(){
+  QUIZ.submitted = true;
+  for (const q of allQuestions()) QUIZ.revealed.add(q.qid);
+  refreshQuiz();
+}
+
+/* =========================================================================
+   6. 对比视图
+   ========================================================================= */
+let cmpPaper = null;
+
+/** 试卷下拉：按组别用 optgroup 分组 */
+function paperOptions(current){
+  const byExam = new Map();
+  for (const x of state.papers){
+    if (!byExam.has(x.examName)) byExam.set(x.examName, []);
+    byExam.get(x.examName).push(x);
+  }
+  return [...byExam.entries()].map(([name, list]) =>
+    `<optgroup label="${esc(name)}">` +
+    list.map(x =>
+      `<option value="${esc(x.dir)}" ${x === current ? "selected" : ""}>` +
+      `${esc([x.year, x.variant ? x.variant + " 卷" : ""].filter(Boolean).join(" "))} · ${esc(x.title)}` +
+      `</option>`
+    ).join("") +
+    `</optgroup>`
+  ).join("");
+}
+
+function renderCompare(){
+  const root = $("#cmpRoot");
+  if (!state.papers.length){
+    root.innerHTML = `<div class="empty" data-ui="compare.empty">还没有导入题库<br><br>
+      <button class="btn primary" id="toImport" data-ui="compare.to-import">去导入</button></div>`;
+    $("#toImport").onclick = () => switchTab("browse");
+    return;
+  }
+  if (!cmpPaper || !state.papers.includes(cmpPaper)) cmpPaper = state.papers[0];
+
+  const p = cmpPaper;
+  root.innerHTML = `
+    <div class="cmpbar" data-ui="compare.bar">
+      <label style="color:var(--ink3);font-size:12.5px" data-ui="compare.bar.paper-label">试卷</label>
+      <select id="cmpSel" data-ui="compare.bar.paper-select">${paperOptions(p)}</select>
+      <div class="chips" id="cmpMode" data-ui="compare.bar.mode">
+        <button class="chip" data-m="both" aria-pressed="true">并排</button>
+        <button class="chip" data-m="mk" aria-pressed="false">只看 Markdown</button>
+        <button class="chip" data-m="pdf" aria-pressed="false">只看 PDF</button>
+      </div>
+      <span style="margin-left:auto;color:var(--ink3);font-size:12.5px" data-ui="compare.bar.info">
+        ${esc(p.examName)}${p.variant ? " " + esc(p.variant) + " 卷" : ""}
+        ｜ ${p.pdfUrl ? "PDF：" + esc(p.pdfName) : "⚠ 该目录下没有 PDF 副本"}
+        ｜ ${p.parsed.questions.length} 题
+      </span>
+    </div>
+    <div class="cmpbody" id="cmpBody" data-ui="compare.body">
+      <div class="pane mk" data-ui="compare.pane.md">
+        <div class="ph" data-ui="compare.pane.md.header">Markdown 转写<span style="margin-left:auto">${esc(p.dir)}/paper.md</span></div>
+        <div class="pb" data-ui="compare.pane.md.body"><div class="md" id="mdPane" data-ui="compare.markdown"></div></div>
+      </div>
+      <div class="pane pdf" data-ui="compare.pane.pdf">
+        <div class="ph" data-ui="compare.pane.pdf.header">原始 PDF<span style="margin-left:auto">${p.pdfUrl ? "浏览器内置阅读器" : "—"}</span></div>
+        <div class="pb" data-ui="compare.pane.pdf.body">
+          ${p.pdfUrl
+            ? `<iframe id="pdfFrame" data-ui="compare.pdf-frame" src="${p.pdfUrl}#view=FitH"></iframe>`
+            : `<div class="empty" data-ui="compare.pdf-missing">该目录下没有 PDF。把源 PDF 复制进 <code>${esc(p.dir)}/</code> 即可在这里对照。</div>`}
+        </div>
+      </div>
+    </div>
+  `;
+
+  $("#mdPane").innerHTML = renderMarkdown(p.raw);
+  resolveImages($("#mdPane"), p);
+
+  $("#cmpSel").onchange = e => {
+    cmpPaper = state.papers.find(x => x.dir === e.target.value) || state.papers[0];
+    renderCompare();
+  };
+  $("#cmpMode").onclick = e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    $$("#cmpMode .chip").forEach(c => c.setAttribute("aria-pressed", String(c === b)));
+    const body = $("#cmpBody");
+    body.classList.toggle("mk-only",  b.dataset.m === "mk");
+    body.classList.toggle("pdf-only", b.dataset.m === "pdf");
+  };
+}
+
+/* =========================================================================
+   7. 交互装配
+   ========================================================================= */
+applyUiFlags();          // 按 UI 配置给 <body> 挂上隐藏类
+
+/* ---- 字号缩放（教学投屏用）--------------------------------------------
+   档位制而非连续滑动：投影时讲者按一下就到位，不用盯着百分比调。
+   只放大题目内容，顶栏与筛选栏保持原尺寸。 */
+const FONT_STEPS = [0.9, 1, 1.15, 1.3, 1.5, 1.75, 2];
+let fontStep = 1;
+
+function setFontStep(i){
+  fontStep = Math.max(0, Math.min(FONT_STEPS.length - 1, i));
+  const z = FONT_STEPS[fontStep];
+  document.documentElement.style.setProperty("--content-zoom", z);
+
+  // 顶栏和题面浮层各有一套控件，一并更新，两处显示要一致
+  $$(".fontctl .fval").forEach(el => el.textContent = Math.round(z * 100) + "%");
+  $$(".fs-down").forEach(el => el.disabled = fontStep === 0);
+  $$(".fs-up").forEach(el => el.disabled = fontStep === FONT_STEPS.length - 1);
+
+  try { localStorage.setItem("tiku.fontStep", String(fontStep)); } catch(_){}
+}
+
+try {
+  const saved = parseInt(localStorage.getItem("tiku.fontStep"), 10);
+  if (Number.isInteger(saved)) fontStep = saved;
+} catch(_){}
+setFontStep(fontStep);
+$$(".fs-down").forEach(el => el.onclick = () => setFontStep(fontStep - 1));
+$$(".fs-up").forEach(el => el.onclick = () => setFontStep(fontStep + 1));
+
+/* ---- 答题 ---- */
+let savedMode = "normal";
+try { savedMode = localStorage.getItem("tiku.quizMode") || "normal"; } catch(_){}
+if (savedMode !== "exam") savedMode = "normal";
+setQuizMode(savedMode);
+$$(".qm").forEach(b => b.onclick = () => setQuizMode(b.dataset.mode));
+
+// 事件委托：列表每次筛选都会重绘，绑在按钮上会丢
+document.addEventListener("click", e => {
+  const li = e.target.closest('[data-ui="qcard.opt"]');
+  if (!li) return;
+  const card = li.closest('[data-ui="qcard"]');
+  if (card) answerQuestion(card.dataset.qid, li.dataset.opt);
+});
+
+/* 点下拉外面、滚动、按 Esc 都收起下拉面板 */
+document.addEventListener("click", e => {
+  if (openDD && !e.target.closest(".dd")) closeDD();
+});
+$("#page-browse").addEventListener("scroll", () => {
+  if (openDD) closeDD();
+}, { passive: true });
+
+/* ---- 题面浮层 ---- */
+initOverlayResize();
+$("#ovClose").onclick = closeGroupOverlay;
+$("#groupOverlay").addEventListener("click", e => {
+  if (e.target.id === "groupOverlay") closeGroupOverlay();   // 点遮罩空白处关闭
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!$("#groupOverlay").hidden) closeGroupOverlay();
+  else if (openDD) closeDD();
+});
+
+function switchTab(name){
+  $$("#tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  $$(".page").forEach(p => p.classList.toggle("active", p.id === "page-" + name));
+  if (name === "compare") renderCompare();
+}
+$("#tabs").onclick = e => { const b = e.target.closest("button"); if (b) switchTab(b.dataset.tab); };
+
+/* --- 目录授权（首选） --- */
+let pendingHandle = null;          // 上次用过的目录，等一次点击来恢复授权
+$("#pick").onclick = () => {
+  if (isHostedPage()) return loadHostedLibrary();
+  return pendingHandle ? restoreDirectory(pendingHandle) : pickDirectory();
+};
+$("#rescanBtn").onclick = () => state.mode === "hosted" ? loadHostedLibrary() : scanHandle();
+$("#changeDirBtn").onclick = () => fsSupported() ? pickDirectory() : $("#dirInput").click();
+
+/* --- 兜底：文件选择 --- */
+$("#pickFile").onclick = () => $("#fileInput").click();
+$("#dirInput").onchange = e => { if (e.target.files.length) ingest(toEntries(e.target.files)); };
+$("#fileInput").onchange = e => { if (e.target.files.length) ingest(toEntries(e.target.files)); };
+
+/* --- 启动：尝试免点击恢复 --- */
+(async function boot(){
+  if (isHostedPage()){
+    await loadHostedLibrary();
+    return;
+  }
+
+  state.mode = "local";
+  $("#dropTitle").textContent = "导入本地题库";
+  $("#dropMsg").textContent = "选择题库文件夹并授权，之后可用“重新扫描”刷新";
+  $("#pick").textContent = "选择文件夹";
+  $("#pick").hidden = false;
+  $("#pickFile").hidden = false;
+  $("#dropHint").innerHTML =
+    "目录在你点选后由页面直接扫描读取，<b>不经过服务器，也不上传任何内容</b>。<br>" +
+    "浏览器规定目录授权必须由点击触发；也可以改用文件选择或把文件夹拖到这里。";
+  if (!fsSupported()){
+    $("#dropMsg").textContent = "当前浏览器不支持目录授权";
+    $("#pick").hidden = true;
+    $("#dropHint").innerHTML =
+      "目录自动读取需要 <b>Chrome / Edge</b> 等支持 File System Access API 的浏览器。<br>" +
+      "当前浏览器请用“改用文件选择”，或直接把文件夹拖进来。";
+    return;
+  }
+  let handle = null;
+  try { handle = await idbGet("root"); } catch(_){}
+  if (!handle) return;
+
+  let perm = "prompt";
+  try { perm = await handle.queryPermission({ mode: "read" }); } catch(_){ return; }
+
+  if (perm === "granted"){
+    // 浏览器记住了授权，打开即自动载入，一次点击都不用
+    state.rootHandle = handle;
+    state.rootName = handle.name;
+    updateDirBadge();
+    await scanHandle();
+  } else {
+    // 需要用户手势才能重新授权，退化成一次点击
+    pendingHandle = handle;
+    $("#dropTitle").textContent = "继续使用上次的题库";
+    $("#dropMsg").innerHTML = `上次连接的目录是 <b>${esc(handle.name)}</b>，点下面按钮恢复访问`;
+    $("#pick").textContent = "恢复访问";
+  }
+})();
+
+/* --- 拖拽 --- */
+const drop = $("#drop");
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add("hot");
+}));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.remove("hot");
+}));
+drop.addEventListener("drop", async e => {
+  const roots = [...(e.dataTransfer?.items || [])]
+    .map(i => i.webkitGetAsEntry?.()).filter(Boolean);
+  if (roots.length){
+    const out = [];
+    await Promise.all(roots.map(en => walkEntry(en, "", out)));
+    if (out.length) return ingest(out);
+  }
+  if (e.dataTransfer?.files?.length) ingest(toEntries(e.dataTransfer.files));
+});
+document.addEventListener("dragover", e => e.preventDefault());
+document.addEventListener("drop", e => e.preventDefault());
+
+/** 递归读拖进来的目录 -> [{file, rel}] */
+function walkEntry(entry, prefix, out){
+  return new Promise(resolve => {
+    if (entry.isFile){
+      entry.file(f => { out.push({ file: f, rel: prefix + entry.name }); resolve(); }, resolve);
+    } else if (entry.isDirectory){
+      const reader = entry.createReader();
+      const all = [];
+      const read = () => reader.readEntries(async batch => {
+        if (!batch.length){
+          await Promise.all(all.map(en => walkEntry(en, prefix + entry.name + "/", out)));
+          return resolve();
+        }
+        all.push(...batch); read();
+      }, resolve);
+      read();
+    } else resolve();
+  });
+}
+
+window.addEventListener("beforeunload", () => {
+  for (const url of state.blobs.values()) URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
